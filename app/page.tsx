@@ -1,5 +1,6 @@
 import { getSession, signIn } from "@/auth";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 
 export default async function Home() {
   const session = await getSession();
@@ -13,8 +14,14 @@ export default async function Home() {
     <main className="min-h-screen bg-starling-cloud text-starling-ink flex items-center justify-center">
       <div className="mx-auto max-w-md w-full px-6">
         <div className="rounded-brand-xl border border-starling-cyan/70 bg-white/80 p-10 shadow-brand backdrop-blur text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-starling-cyan bg-white/80 px-4 py-2 text-sm font-semibold text-starling-blue shadow-sm">
-            murmur8 Portal
+          <div className="mb-6 flex justify-center">
+            <Image
+              src="/murmur8-logo-full.svg"
+              alt="murmur8"
+              width={200}
+              height={160}
+              priority
+            />
           </div>
 
           <h1 className="text-3xl font-extrabold tracking-tight text-starling-ink">

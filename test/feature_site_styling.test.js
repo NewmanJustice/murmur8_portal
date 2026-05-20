@@ -144,3 +144,62 @@ describe('tailwind.config.ts font variables', () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// logo and favicon wiring — app/layout.tsx and page-level Image usage
+// ---------------------------------------------------------------------------
+
+describe('logo and favicon wiring', () => {
+  it('T-SS-13: app/layout.tsx references favicon.svg in its metadata export', () => {
+    const filePath = path.join(projectRoot, 'app/layout.tsx');
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(
+      content.includes('favicon.svg'),
+      `Expected "favicon.svg" to appear in app/layout.tsx metadata but got:\n${content}`
+    );
+  });
+
+  it('T-SS-14: app/page.tsx (login page) uses Next.js Image component with /murmur8-logo-full.svg', () => {
+    const filePath = path.join(projectRoot, 'app/page.tsx');
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(
+      content.includes('murmur8-logo-full.svg'),
+      `Expected "murmur8-logo-full.svg" to appear in app/page.tsx but got:\n${content}`
+    );
+    assert.ok(
+      content.includes('Image'),
+      `Expected Next.js "Image" import/usage to appear in app/page.tsx but got:\n${content}`
+    );
+  });
+
+  it('T-SS-15: app/dashboard/page.tsx uses Next.js Image component with /murmur8-logo-compact.svg in the header', () => {
+    const filePath = path.join(projectRoot, 'app/dashboard/page.tsx');
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(
+      content.includes('murmur8-logo-compact.svg'),
+      `Expected "murmur8-logo-compact.svg" to appear in app/dashboard/page.tsx but got:\n${content}`
+    );
+  });
+
+  it('T-SS-16: app/dashboard/runs/[id]/page.tsx uses Next.js Image component with /murmur8-logo-compact.svg in the header', () => {
+    const filePath = path.join(projectRoot, 'app/dashboard/runs/[id]/page.tsx');
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(
+      content.includes('murmur8-logo-compact.svg'),
+      `Expected "murmur8-logo-compact.svg" to appear in app/dashboard/runs/[id]/page.tsx but got:\n${content}`
+    );
+  });
+
+  it('T-SS-17: app/admin/keys/page.tsx has a <header> element and uses Next.js Image with /murmur8-logo-compact.svg', () => {
+    const filePath = path.join(projectRoot, 'app/admin/keys/page.tsx');
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(
+      content.includes('<header'),
+      `Expected a "<header" element in app/admin/keys/page.tsx but got:\n${content}`
+    );
+    assert.ok(
+      content.includes('murmur8-logo-compact.svg'),
+      `Expected "murmur8-logo-compact.svg" to appear in app/admin/keys/page.tsx but got:\n${content}`
+    );
+  });
+});

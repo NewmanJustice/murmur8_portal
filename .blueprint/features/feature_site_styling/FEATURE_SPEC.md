@@ -29,6 +29,12 @@ type: infrastructure / bug-fix
 - Verify that `app/globals.css` is imported in `app/layout.tsx` (already present; confirm no regression).
 - Verify that `tailwind.config.ts` content paths cover `./app/**/*.{ts,tsx,js,jsx,mdx}` (already correct; confirm no regression).
 - Confirm that the Google Font CSS variables (`--font-inter`, `--font-jetbrains-mono`) set in `layout.tsx` are wired to the Tailwind `fontFamily` config so `font-sans` and `font-mono` classes resolve correctly. Currently `tailwind.config.ts` declares `Inter` by name rather than the CSS variable; this should be corrected to `var(--font-inter)` / `var(--font-jetbrains-mono)`.
+- Wire up the SVG brand assets that already exist in `/public/` but are not referenced anywhere in the application:
+  1. **Favicon** — add `icons: { icon: '/favicon.svg' }` to the `Metadata` export in `app/layout.tsx` so the browser tab displays the murmur8 icon.
+  2. **Login page logo** — replace the plain "murmur8 Portal" text pill in `app/page.tsx` with a Next.js `<Image>` component pointing to `/murmur8-logo-full.svg`.
+  3. **Dashboard nav logo** — replace the `<span className="font-mono ...">murmur8</span>` text in `app/dashboard/page.tsx` with a Next.js `<Image>` component pointing to `/murmur8-logo-compact.svg`.
+  4. **Run-detail nav logo** — replace the equivalent `<span className="font-mono ...">murmur8</span>` text in `app/dashboard/runs/[id]/page.tsx` with a Next.js `<Image>` component pointing to `/murmur8-logo-compact.svg`.
+  5. **Admin/keys nav bar** — add a full `<header>` nav bar above the existing `<div className="max-w-6xl mx-auto px-6 py-10">` container in `app/admin/keys/page.tsx`, matching the pattern used in `app/dashboard/page.tsx` and containing the compact logo via `<Image>`. The nav bar must reflect the page's dark theme (`bg-starling-night`). All logo placements must use Next.js `<Image>` (not `<img>`).
 
 ### Out of Scope
 
@@ -79,6 +85,11 @@ This feature is **state-constraining** on the build pipeline, not on domain data
 | **RS2** | The PostCSS config file must be CommonJS (`module.exports = { plugins: { tailwindcss: {}, autoprefixer: {} } }`) or ESM (`export default { plugins: { tailwindcss: {}, autoprefixer: {} } }`). Given `package.json` sets `"type": "module"`, an ESM-compatible format or `.cjs` extension should be used to avoid module-type conflicts. |
 | **RS3** | Font family values in `tailwind.config.ts` must reference CSS variable tokens (`var(--font-inter)`, `var(--font-jetbrains-mono)`) to match the variables set by `next/font/google` in `layout.tsx`. |
 | **RS4** | `globals.css` must remain the first import in `app/layout.tsx` (already the case). |
+| **RS5** | `app/layout.tsx` Metadata export must include `icons: { icon: '/favicon.svg' }`. The SVG file is already present at `public/favicon.svg`; only the metadata reference is missing. |
+| **RS6** | `app/page.tsx` (login page) must render the full logo via `<Image src="/murmur8-logo-full.svg" alt="murmur8" ... />` using the Next.js `<Image>` component. The plain "murmur8 Portal" text pill must be removed or replaced. |
+| **RS7** | `app/dashboard/page.tsx` must render the compact logo via `<Image src="/murmur8-logo-compact.svg" alt="murmur8" ... />` in its `<header>` nav bar, replacing the `<span className="font-mono ...">murmur8</span>` text. |
+| **RS8** | `app/dashboard/runs/[id]/page.tsx` must render the compact logo via `<Image src="/murmur8-logo-compact.svg" alt="murmur8" ... />` in its `<header>` nav bar, replacing the equivalent `<span className="font-mono ...">murmur8</span>` text. |
+| **RS9** | `app/admin/keys/page.tsx` must have a `<header>` nav bar placed above the `<div className="max-w-6xl mx-auto px-6 py-10">` container. The nav bar must: (a) match the structural pattern of `app/dashboard/page.tsx`'s header; (b) use `bg-starling-night` or equivalent dark background consistent with the page theme; (c) display the compact logo via `<Image src="/murmur8-logo-compact.svg" alt="murmur8" ... />`. |
 
 **Decision note on RS2:** Next.js with `"type": "module"` in `package.json` requires PostCSS config to be either named `postcss.config.cjs` or to use `postcss.config.mjs`. The safest and most conventional approach for Next.js 15 is `postcss.config.mjs` with an ESM default export.
 
@@ -135,6 +146,8 @@ This is a pure infrastructure/bug-fix feature. Story boundaries are narrow:
 
 Stories require no UI changes — only build-tooling verification. Test approach: visual diff or snapshot of a known page before and after the fix.
 
+**Refinement note (2026-05-20):** The logo/favicon wiring changes (RS5–RS9) are infrastructure changes — they wire existing assets to the correct locations with no new design decisions. No new stories are required. The existing `story-brand-styling-renders.md` covers visual correctness and its acceptance criteria should be updated to include: (a) browser tab displays the murmur8 favicon; (b) login page shows the full logo SVG; (c) dashboard, run-detail, and admin/keys pages all show the compact logo SVG in the nav header; (d) admin/keys page has a proper nav header bar. `story-postcss-config.md` and `story-font-css-variables.md` are unaffected by these changes.
+
 ---
 
 ## 12. Change Log (Feature-Level)
@@ -142,3 +155,4 @@ Stories require no UI changes — only build-tooling verification. Test approach
 | Date | Change | Reason | Raised By |
 |------|--------|--------|-----------|
 | 2026-05-20 | Initial spec created | Tailwind CSS rendering broken due to missing PostCSS config | Alex |
+| 2026-05-20 | Added logo/favicon wiring to §2 Scope, RS5–RS9 to §6, and refinement note to §11 | Add logo/favicon wiring — assets existed in /public/ but were not referenced | Alex |

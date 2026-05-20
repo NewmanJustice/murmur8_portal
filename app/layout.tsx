@@ -14,6 +14,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'murmur8 portal',
+  icons: { icon: '/favicon.svg' },
 };
 
 export default function RootLayout({

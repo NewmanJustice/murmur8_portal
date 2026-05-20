@@ -1,5 +1,6 @@
 import { getSession, signOut } from "@/auth";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import { getPaginationParams, getFilterParams } from "@/lib/dashboard";
 import { getUserRuns, getInsightsData } from "@/lib/runs";
 import { computeInsights, computeStageAverages, getMostCommonFailureStage } from "@/lib/insights";
@@ -61,9 +62,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       <header className="border-b border-starling-cyan/30 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="font-mono text-sm font-semibold text-starling-blue">
-              murmur8
-            </span>
+            <Image
+              src="/murmur8-logo-compact.svg"
+              alt="murmur8"
+              width={120}
+              height={30}
+              priority
+            />
             {user.isAdmin && (
               <span className="rounded-full bg-agent-alex/20 px-2 py-0.5 text-xs font-semibold text-starling-blue">
                 Admin

@@ -1,5 +1,6 @@
 import { getSession } from '@/auth';
 import { redirect, notFound } from 'next/navigation';
+import Image from 'next/image';
 import { getRunDetail } from '@/lib/runs';
 import {
   formatDuration,
@@ -54,9 +55,13 @@ export default async function RunDetailPage({ params }: RunDetailPageProps) {
       {/* Header */}
       <header className="border-b border-starling-cyan/30 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="font-mono text-sm font-semibold text-starling-blue">
-            murmur8
-          </span>
+          <Image
+            src="/murmur8-logo-compact.svg"
+            alt="murmur8"
+            width={120}
+            height={30}
+            priority
+          />
         </div>
       </header>
 
