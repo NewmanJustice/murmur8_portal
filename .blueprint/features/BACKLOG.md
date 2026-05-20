@@ -2,7 +2,7 @@
 
 | Status | P | E | Slug | Description |
 |--------|---|---|------|-------------|
-| ⏳ | P0 | M | `project-scaffold` | Next.js app, Tailwind brand theme, Prisma schema, NextAuth wiring |
+| ✅ | P0 | M | `project-scaffold` | Next.js app, Tailwind brand theme, Prisma schema, NextAuth wiring |
 | ⏳ | P0 | M | `github-auth` | GitHub OAuth sign-in/out, User record creation, session protection |
 | ⏳ | P0 | M | `api-key-management` | Generate, list, revoke keys; hashed storage; one-time reveal |
 | ⏳ | P0 | M | `telemetry-ingestion` | POST /api/telemetry endpoint, key validation, Run record storage |
