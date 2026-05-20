@@ -35,6 +35,7 @@ model ApiKey {
   id         String    @id @default(cuid())
   key        String    @unique
   name       String
+  keyPrefix  String    @default("")
   userId     String
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
