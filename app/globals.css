@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --starling-ink: #0b1020;
+  --starling-night: #111827;
+  --starling-dusk: #1e293b;
+  --starling-blue: #1e5a7a;
+  --starling-slate: #334155;
+  --starling-silver: #94a3b8;
+  --starling-cloud: #f8fafc;
+  --starling-mist: #eaf6ff;
+  --starling-sky: #38bdf8;
+  --starling-cyan: #bae6fd;
+
+  --agent-alex: #38bdf8;
+  --agent-cass: #a78bfa;
+  --agent-nigel: #f59e0b;
+  --agent-codey: #2dd4bf;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 34%),
+    var(--starling-cloud);
+  color: var(--starling-ink);
+}
+
+::selection {
+  background: var(--starling-cyan);
+  color: var(--starling-ink);
+}
