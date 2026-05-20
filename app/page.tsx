@@ -1,75 +1,54 @@
-const agents = [
-  { name: "Alex", role: "Feature spec", color: "bg-agent-alex" },
-  { name: "Cass", role: "User stories", color: "bg-agent-cass" },
-  { name: "Nigel", role: "Executable tests", color: "bg-agent-nigel" },
-  { name: "Codey", role: "Implementation", color: "bg-agent-codey" },
-];
+import { auth, signIn } from "@/auth";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+
+  // Authenticated users go straight to the dashboard
+  if (session?.user) {
+    redirect("/dashboard");
+  }
+
   return (
-    <main className="bg-starling-cloud text-starling-ink">
-      <section className="relative overflow-hidden px-6 py-24 sm:py-32">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_420px]">
-
-          <div>
-            <div className="mb-6 inline-flex rounded-full border border-starling-cyan bg-white/80 px-4 py-2 text-sm font-semibold text-starling-blue shadow-sm">
-              AI coding with a readable trail
-            </div>
-
-            <h1 className="max-w-3xl text-5xl font-extrabold tracking-tight text-starling-ink sm:text-7xl">
-              Agents that move together.
-            </h1>
-
-            <p className="mt-6 max-w-2xl text-xl leading-8 text-starling-slate">
-              murmur8 turns fuzzy feature ideas into specs, stories, tests, and
-              implementation through a structured AI engineering pipeline.
-            </p>
-
-            <div className="mt-10 flex flex-wrap gap-4">
-              <a
-                href="#quick-start"
-                className="rounded-brand bg-starling-ink px-5 py-3 font-mono text-sm font-semibold text-starling-cyan shadow-brand transition hover:-translate-y-0.5 hover:shadow-glow"
-              >
-                npx murmur8 init
-              </a>
-              <a
-                href="#workflow"
-                className="rounded-brand border border-starling-cyan bg-white px-5 py-3 text-sm font-bold text-starling-ink transition hover:border-starling-sky hover:bg-starling-mist"
-              >
-                View workflow
-              </a>
-            </div>
+    <main className="min-h-screen bg-starling-cloud text-starling-ink flex items-center justify-center">
+      <div className="mx-auto max-w-md w-full px-6">
+        <div className="rounded-brand-xl border border-starling-cyan/70 bg-white/80 p-10 shadow-brand backdrop-blur text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-starling-cyan bg-white/80 px-4 py-2 text-sm font-semibold text-starling-blue shadow-sm">
+            murmur8 Portal
           </div>
 
-          <div className="rounded-brand-xl border border-starling-cyan/70 bg-white/80 p-6 shadow-brand backdrop-blur">
-            <div className="rounded-brand-lg bg-hero-dark p-6 text-white shadow-glow">
-              <p className="font-mono text-sm text-starling-cyan">
-                /implement-feature user-auth
-              </p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-starling-ink">
+            Welcome back
+          </h1>
 
-              <div className="mt-8 space-y-4">
-                {agents.map(({ name, role, color }) => (
-                  <div
-                    key={name}
-                    className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.08] p-4"
-                  >
-                    <div className={`h-3 w-3 rounded-full ${color}`} />
-                    <div>
-                      <p className="font-bold">{name}</p>
-                      <p className="text-sm text-slate-300">{role}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <p className="mt-3 text-starling-slate">
+            Sign in with your GitHub account to access the dashboard.
+          </p>
 
-              <p className="mt-8 text-sm text-slate-300">
-                Spec → Stories → Tests → Code → History
-              </p>
-            </div>
-          </div>
-
+          <form
+            className="mt-8"
+            action={async () => {
+              "use server";
+              await signIn("github", { redirectTo: "/dashboard" });
+            }}
+          >
+            <button
+              type="submit"
+              className="w-full flex items-center justify-center gap-3 rounded-brand bg-starling-ink px-5 py-3 font-semibold text-starling-cyan shadow-brand transition hover:-translate-y-0.5 hover:shadow-glow"
+            >
+              <svg
+                aria-hidden="true"
+                className="h-5 w-5 fill-current"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+              </svg>
+              Sign in with GitHub
+            </button>
+          </form>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
