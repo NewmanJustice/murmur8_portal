@@ -7,9 +7,9 @@
  * auth() from auth.ts. Mutations are scoped to the authenticated user's keys.
  */
 
-import { auth } from '@/auth.js';
-import { validateKeyName } from '@/lib/api-keys.js';
-import { createApiKey, revokeApiKey } from '@/lib/api-keys-db.js';
+import { getSession } from '@/auth';
+import { validateKeyName } from '@/lib/api-keys';
+import { createApiKey, revokeApiKey } from '@/lib/api-keys-db';
 import { redirect } from 'next/navigation';
 
 // ---------------------------------------------------------------------------
@@ -19,7 +19,7 @@ export async function createKey(
   _prevState: { error?: string; rawKey?: string } | null,
   formData: FormData
 ): Promise<{ error?: string; rawKey?: string; keyName?: string }> {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.id) {
     redirect('/');
   }
@@ -45,7 +45,7 @@ export async function createKey(
 export async function revokeKey(
   keyId: string
 ): Promise<{ error?: string }> {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.id) {
     redirect('/');
   }

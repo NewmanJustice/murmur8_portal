@@ -3,6 +3,24 @@ import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
+// Dev autologin — bypasses GitHub OAuth when DEV_AUTOLOGIN=true.
+// Uses the seed user so all dashboard pages render real data immediately.
+// Never set this in production.
+export const DEV_SESSION =
+  process.env.DEV_AUTOLOGIN === 'true'
+    ? {
+        user: {
+          id: 'cmpedsftq0000em57ejkpeeqg',
+          name: 'Steve Newman',
+          email: 'steve@example.com',
+          image: null,
+          isAdmin: true,
+          avatarUrl: null as string | null,
+        },
+        expires: new Date(Date.now() + 86_400_000 * 30).toISOString(),
+      }
+    : null;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
 
@@ -32,7 +50,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, profile, account }) {
       if (!profile?.id) return true;
 
-      // Org membership check — only active when GITHUB_ORG_CHECK=true and GITHUB_ORG is set
       if (process.env.GITHUB_ORG_CHECK === 'true' && process.env.GITHUB_ORG) {
         const res = await fetch('https://api.github.com/user/orgs', {
           headers: { Authorization: `Bearer ${account?.access_token}` },
@@ -45,14 +62,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       const githubId = String(profile.id);
 
-      // Check if a User record already exists for this GitHub account
       const existing = await prisma.user.findUnique({
         where: { githubId },
         select: { id: true },
       });
 
       if (!existing) {
-        // First sign-in — create the User record with isAdmin evaluation
         const isAdmin =
           process.env.ADMIN_GITHUB_ID !== undefined &&
           process.env.ADMIN_GITHUB_ID !== ""
@@ -69,13 +84,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
         });
       }
-      // Existing user — no-op: isAdmin is never changed after creation
 
       return true;
     },
 
     async session({ session, user }) {
-      // Expose the User's id and isAdmin to server components via auth()
       if (session.user && user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
@@ -91,3 +104,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+// getSession — use this in Server Components and Route Handlers instead of auth().
+// In dev autologin mode returns the fake session directly without touching NextAuth.
+export async function getSession() {
+  if (DEV_SESSION) return DEV_SESSION;
+  return auth();
+}

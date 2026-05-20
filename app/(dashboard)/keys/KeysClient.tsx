@@ -10,7 +10,7 @@
  */
 
 import { useActionState, useState } from 'react';
-import { createKey, revokeKey } from './actions.js';
+import { createKey, revokeKey } from './actions';
 
 interface ApiKeyRow {
   id: string;

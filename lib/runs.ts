@@ -14,7 +14,7 @@ export interface RunRow {
   type: string;
   completedAt: Date | null;
   totalDurationMs: number | null;
-  totalCost: unknown; // Prisma returns Decimal; cast in UI layer
+  totalCost: number | null;
 }
 
 export interface GetUserRunsResult {
@@ -33,7 +33,7 @@ export interface RunDetail {
   startedAt: Date;
   completedAt: Date | null;
   totalDurationMs: number | null;
-  totalCost: unknown; // Prisma returns Decimal; cast in UI layer
+  totalCost: number | null;
   commitHash: string | null;
   failedStage: string | null;
   pausedAfter: string | null;
@@ -50,7 +50,7 @@ export async function getRunDetail(
   id: string,
   userId: string
 ): Promise<RunDetail | null> {
-  return prisma.run.findFirst({
+  const run = await prisma.run.findFirst({
     where: { id, userId },
     select: {
       id: true,
@@ -71,6 +71,8 @@ export async function getRunDetail(
       receivedAt: true,
     },
   });
+  if (!run) return null;
+  return { ...run, totalCost: run.totalCost ? run.totalCost.toNumber() : null };
 }
 
 /**
@@ -128,7 +130,11 @@ export async function getUserRuns(
 
   const totalPages = Math.max(1, Math.ceil(total / pagination.limit));
 
-  return { runs, total, totalPages };
+  return {
+    runs: runs.map((r) => ({ ...r, totalCost: r.totalCost ? r.totalCost.toNumber() : null })),
+    total,
+    totalPages,
+  };
 }
 
 /**
@@ -136,7 +142,7 @@ export async function getUserRuns(
  * userId is always enforced (R1).
  */
 export async function getInsightsData(userId: string): Promise<InsightsRun[]> {
-  return prisma.run.findMany({
+  const runs = await prisma.run.findMany({
     where: { userId },
     select: {
       status: true,
@@ -146,4 +152,5 @@ export async function getInsightsData(userId: string): Promise<InsightsRun[]> {
       stages: true,
     },
   });
+  return runs.map((r) => ({ ...r, totalCost: r.totalCost ? r.totalCost.toNumber() : null }));
 }

@@ -5,8 +5,8 @@
  * Separation from pure utils allows testing pure logic without a DB connection.
  */
 
-import { prisma } from './prisma.js';
-import { generateKey, hashKey, maskKey } from './api-keys.js';
+import { prisma } from './prisma';
+import { generateKey, hashKey, maskKey } from './api-keys';
 
 // ---------------------------------------------------------------------------
 // Types

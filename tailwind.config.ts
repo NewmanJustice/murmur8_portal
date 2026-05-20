@@ -31,7 +31,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
-          "Inter",
+          "var(--font-inter)",
           "ui-sans-serif",
           "system-ui",
           "-apple-system",
@@ -40,7 +40,7 @@ const config: Config = {
           "sans-serif",
         ],
         mono: [
-          "JetBrains Mono",
+          "var(--font-jetbrains-mono)",
           "SFMono-Regular",
           "Consolas",
           "ui-monospace",

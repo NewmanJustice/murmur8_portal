@@ -1,4 +1,4 @@
-import { auth } from '@/auth';
+import { getSession } from '@/auth';
 import { redirect, notFound } from 'next/navigation';
 import { getRunDetail } from '@/lib/runs';
 import {
@@ -16,7 +16,7 @@ interface RunDetailPageProps {
 }
 
 export default async function RunDetailPage({ params }: RunDetailPageProps) {
-  const session = await auth();
+  const session = await getSession();
 
   if (!session?.user) {
     redirect('/');

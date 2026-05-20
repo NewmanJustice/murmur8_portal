@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { revokeAnyKey } from './actions.js';
+import { revokeAnyKey } from './actions';
 
 interface KeyOwner {
   id: string;

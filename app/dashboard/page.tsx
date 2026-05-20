@@ -1,4 +1,4 @@
-import { auth, signOut } from "@/auth";
+import { getSession, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { getPaginationParams, getFilterParams } from "@/lib/dashboard";
 import { getUserRuns, getInsightsData } from "@/lib/runs";
@@ -19,7 +19,7 @@ interface DashboardPageProps {
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const session = await auth();
+  const session = await getSession();
 
   if (!session?.user) {
     redirect("/");

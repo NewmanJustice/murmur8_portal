@@ -5,16 +5,16 @@
  * Non-admins and unauthenticated users are redirected.
  */
 
-import { auth } from '@/auth.js';
+import { getSession } from '@/auth';
 import { redirect } from 'next/navigation';
-import { adminListApiKeys } from '@/lib/api-keys-db.js';
-import { computeAdminStats, checkAdminAccess } from '@/lib/admin-key-panel.js';
-import { AdminKeysClient } from './AdminKeysClient.js';
+import { adminListApiKeys } from '@/lib/api-keys-db';
+import { computeAdminStats, checkAdminAccess } from '@/lib/admin-key-panel';
+import { AdminKeysClient } from './AdminKeysClient';
 
 export const metadata = { title: 'Admin: All API Keys — murmur8 portal' };
 
 export default async function AdminKeysPage() {
-  const session = await auth();
+  const session = await getSession();
   const sessionLike = session
     ? { user: { id: session.user?.id, isAdmin: (session.user as { isAdmin?: boolean })?.isAdmin } }
     : null;

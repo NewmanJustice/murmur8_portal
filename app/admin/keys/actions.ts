@@ -8,9 +8,9 @@
  * no key mutation occurs.
  */
 
-import { auth } from '@/auth.js';
-import { adminRevokeApiKey } from '@/lib/api-keys-db.js';
-import { checkAdminAccess } from '@/lib/admin-key-panel.js';
+import { getSession } from '@/auth';
+import { adminRevokeApiKey } from '@/lib/api-keys-db';
+import { checkAdminAccess } from '@/lib/admin-key-panel';
 import { redirect } from 'next/navigation';
 
 // ---------------------------------------------------------------------------
@@ -19,7 +19,7 @@ import { redirect } from 'next/navigation';
 export async function revokeAnyKey(
   keyId: string
 ): Promise<{ error?: string }> {
-  const session = await auth();
+  const session = await getSession();
   const sessionLike = session
     ? { user: { id: session.user?.id, isAdmin: (session.user as { isAdmin?: boolean })?.isAdmin } }
     : null;

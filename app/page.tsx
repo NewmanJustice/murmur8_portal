@@ -1,8 +1,8 @@
-import { auth, signIn } from "@/auth";
+import { getSession, signIn } from "@/auth";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
-  const session = await auth();
+  const session = await getSession();
 
   // Authenticated users go straight to the dashboard
   if (session?.user) {

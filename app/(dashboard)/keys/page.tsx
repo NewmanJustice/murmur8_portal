@@ -5,15 +5,15 @@
  * Unauthenticated requests redirect to login.
  */
 
-import { auth } from '@/auth.js';
+import { getSession } from '@/auth';
 import { redirect } from 'next/navigation';
-import { listApiKeys } from '@/lib/api-keys-db.js';
-import { KeysClient } from './KeysClient.js';
+import { listApiKeys } from '@/lib/api-keys-db';
+import { KeysClient } from './KeysClient';
 
 export const metadata = { title: 'API Keys — murmur8 portal' };
 
 export default async function KeysPage() {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.id) {
     redirect('/');
   }
