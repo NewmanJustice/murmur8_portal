@@ -5,6 +5,7 @@
 
 import { prisma } from '@/lib/prisma';
 import type { FilterParams, PaginationParams } from '@/lib/dashboard';
+import type { InsightsRun } from '@/lib/insights';
 
 export interface RunRow {
   id: string;
@@ -128,4 +129,21 @@ export async function getUserRuns(
   const totalPages = Math.max(1, Math.ceil(total / pagination.limit));
 
   return { runs, total, totalPages };
+}
+
+/**
+ * Fetch the fields needed to compute insights for a given user.
+ * userId is always enforced (R1).
+ */
+export async function getInsightsData(userId: string): Promise<InsightsRun[]> {
+  return prisma.run.findMany({
+    where: { userId },
+    select: {
+      status: true,
+      totalDurationMs: true,
+      totalCost: true,
+      failedStage: true,
+      stages: true,
+    },
+  });
 }

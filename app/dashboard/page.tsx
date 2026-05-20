@@ -1,8 +1,10 @@
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { getPaginationParams, getFilterParams } from "@/lib/dashboard";
-import { getUserRuns } from "@/lib/runs";
+import { getUserRuns, getInsightsData } from "@/lib/runs";
+import { computeInsights, computeStageAverages, getMostCommonFailureStage } from "@/lib/insights";
 import { RunsTable } from "@/app/dashboard/RunsTable";
+import { InsightsPanel } from "@/app/dashboard/InsightsPanel";
 
 interface SearchParams {
   page?: string;
@@ -40,7 +42,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const pagination = getPaginationParams(params);
   const filters = getFilterParams(params);
 
-  const { runs, total, totalPages } = await getUserRuns(userId, filters, pagination);
+  const [{ runs, total, totalPages }, insightsRuns] = await Promise.all([
+    getUserRuns(userId, filters, pagination),
+    getInsightsData(userId),
+  ]);
+
+  const insights = computeInsights(insightsRuns);
+  const stageAverages = computeStageAverages(insightsRuns);
+  const mostCommonFailureStage = getMostCommonFailureStage(insightsRuns);
 
   const hasFilters = !!(params.status || params.slug || params.dateFrom || params.dateTo);
   const isEmpty = runs.length === 0;
@@ -92,6 +101,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-10">
+        {/* Insights Panel */}
+        <InsightsPanel
+          insights={insights}
+          stageAverages={stageAverages}
+          mostCommonFailureStage={mostCommonFailureStage}
+        />
+
         {/* Page heading */}
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold tracking-tight text-starling-ink">
