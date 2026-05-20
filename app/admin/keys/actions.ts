@@ -10,6 +10,7 @@
 
 import { auth } from '@/auth.js';
 import { adminRevokeApiKey } from '@/lib/api-keys-db.js';
+import { checkAdminAccess } from '@/lib/admin-key-panel.js';
 import { redirect } from 'next/navigation';
 
 // ---------------------------------------------------------------------------
@@ -19,15 +20,13 @@ export async function revokeAnyKey(
   keyId: string
 ): Promise<{ error?: string }> {
   const session = await auth();
+  const sessionLike = session
+    ? { user: { id: session.user?.id, isAdmin: (session.user as { isAdmin?: boolean })?.isAdmin } }
+    : null;
 
-  if (!session?.user?.id) {
-    redirect('/');
-  }
-
-  // Gate: non-admins must not be able to invoke this action
-  if (!(session.user as { isAdmin?: boolean }).isAdmin) {
-    return { error: 'Forbidden: admin access required.' };
-  }
+  const access = checkAdminAccess(sessionLike);
+  if (access === 'redirect-login') redirect('/');
+  if (access === 'redirect-keys') return { error: 'Forbidden: admin access required.' };
 
   try {
     await adminRevokeApiKey(keyId);

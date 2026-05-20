@@ -8,23 +8,23 @@
 import { auth } from '@/auth.js';
 import { redirect } from 'next/navigation';
 import { adminListApiKeys } from '@/lib/api-keys-db.js';
+import { computeAdminStats, checkAdminAccess } from '@/lib/admin-key-panel.js';
 import { AdminKeysClient } from './AdminKeysClient.js';
 
 export const metadata = { title: 'Admin: All API Keys — murmur8 portal' };
 
 export default async function AdminKeysPage() {
   const session = await auth();
+  const sessionLike = session
+    ? { user: { id: session.user?.id, isAdmin: (session.user as { isAdmin?: boolean })?.isAdmin } }
+    : null;
 
-  if (!session?.user?.id) {
-    redirect('/');
-  }
-
-  // Non-admin: redirect to their own key management page
-  if (!(session.user as { isAdmin?: boolean }).isAdmin) {
-    redirect('/dashboard/keys');
-  }
+  const access = checkAdminAccess(sessionLike);
+  if (access === 'redirect-login') redirect('/');
+  if (access === 'redirect-keys') redirect('/dashboard/keys');
 
   const keys = await adminListApiKeys();
+  const stats = computeAdminStats(keys.map((k) => ({ userId: k.user.id, revokedAt: k.revokedAt })));
 
   return (
     <main className="min-h-screen bg-starling-night text-starling-cloud">
@@ -47,19 +47,10 @@ export default async function AdminKeysPage() {
         {/* Stats bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Total keys', value: keys.length },
-            {
-              label: 'Active keys',
-              value: keys.filter((k) => !k.revokedAt).length,
-            },
-            {
-              label: 'Revoked keys',
-              value: keys.filter((k) => k.revokedAt).length,
-            },
-            {
-              label: 'Unique owners',
-              value: new Set(keys.map((k) => k.user.id)).size,
-            },
+            { label: 'Total keys', value: stats.total },
+            { label: 'Active keys', value: stats.active },
+            { label: 'Revoked keys', value: stats.revoked },
+            { label: 'Unique owners', value: stats.uniqueOwners },
           ].map(({ label, value }) => (
             <div
               key={label}
