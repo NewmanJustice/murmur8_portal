@@ -22,6 +22,56 @@ export interface GetUserRunsResult {
   totalPages: number;
 }
 
+export interface RunDetail {
+  id: string;
+  userId: string;
+  apiKeyId: string;
+  slug: string;
+  status: string;
+  type: string;
+  startedAt: Date;
+  completedAt: Date | null;
+  totalDurationMs: number | null;
+  totalCost: unknown; // Prisma returns Decimal; cast in UI layer
+  commitHash: string | null;
+  failedStage: string | null;
+  pausedAfter: string | null;
+  parentRunId: string | null;
+  stages: unknown;
+  receivedAt: Date;
+}
+
+/**
+ * Fetch a single run by id, enforcing ownership via userId (R1).
+ * Returns null if the run does not exist or belongs to a different user.
+ */
+export async function getRunDetail(
+  id: string,
+  userId: string
+): Promise<RunDetail | null> {
+  return prisma.run.findFirst({
+    where: { id, userId },
+    select: {
+      id: true,
+      userId: true,
+      apiKeyId: true,
+      slug: true,
+      status: true,
+      type: true,
+      startedAt: true,
+      completedAt: true,
+      totalDurationMs: true,
+      totalCost: true,
+      commitHash: true,
+      failedStage: true,
+      pausedAfter: true,
+      parentRunId: true,
+      stages: true,
+      receivedAt: true,
+    },
+  });
+}
+
 /**
  * Fetch a page of the authenticated user's runs with optional filters.
  * userId is ALWAYS applied — never bypassed by filter values.
