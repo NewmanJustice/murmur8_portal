@@ -44,6 +44,7 @@ The murmur8 Portal is a private dashboard — anonymous visitors must never acce
 - Self-serve account deletion
 - Session expiry policy (uses NextAuth defaults)
 - Public/shareable routes
+- Fine-grained org team membership checks (org-level only, not team-level)
 
 ---
 
@@ -147,12 +148,18 @@ The `User` record is permanent once created. No sign-in event modifies existing 
 - **Deterministic**: Yes.
 - **Constraint**: `isAdmin` is never modified by subsequent sign-ins (aligns to System Spec §6.3, R5).
 
-### R-AUTH-4: Session strategy — database sessions
+### R-AUTH-4: Optional GitHub org membership restriction
+- **Rule**: If `GITHUB_ORG_CHECK=true` AND `GITHUB_ORG` is set, the `signIn` callback must verify the authenticating user is a member of the specified GitHub org before allowing sign-in. Non-members receive a sign-in denial (`return false`).
+- **Mechanism**: Call `GET https://api.github.com/user/orgs` with the user's OAuth access token (requires `read:org` scope, added to the authorization request only when `GITHUB_ORG_CHECK=true`). If the response is not OK or the org login is not present in the returned list, deny sign-in.
+- **Default**: `GITHUB_ORG_CHECK` defaults to disabled — omitting either env var leaves sign-in open to all GitHub users.
+- **Constraint**: GitHub org OAuth Apps must be approved by the org owner if the org enforces OAuth App access restrictions.
+
+### R-AUTH-5: Session strategy — database sessions
 - **Rule**: NextAuth must be configured for **database sessions** (not JWT), using `@auth/prisma-adapter`.
 - **Rationale**: The portal needs server-side session invalidation (future key revocation may require session termination). Database sessions also allow `Session` records to be directly queried.
 - **Resolves**: OQ1 from System Spec §9.
 
-### R-AUTH-5: No cross-user data via session
+### R-AUTH-6: No cross-user data via session
 - **Rule**: The session exposes only the authenticated user's own `User.id` (and optionally `name`, `avatarUrl`, `isAdmin`). No other user's data is included.
 - **Deterministic**: Yes — enforced by NextAuth session callback scope.
 
@@ -174,13 +181,15 @@ The `User` record is permanent once created. No sign-in event modifies existing 
 - `@prisma/client`
 
 ### Environment variables required
-| Variable | Purpose |
-|----------|---------|
-| `DATABASE_URL` | Prisma connection string |
-| `AUTH_SECRET` | NextAuth signing secret (min 32 chars) |
-| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID |
-| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
-| `ADMIN_GITHUB_ID` | GitHub numeric user ID for the admin user |
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `DATABASE_URL` | Yes | Prisma connection string |
+| `AUTH_SECRET` | Yes | NextAuth signing secret (min 32 chars) |
+| `GITHUB_CLIENT_ID` | Yes | GitHub OAuth App client ID |
+| `GITHUB_CLIENT_SECRET` | Yes | GitHub OAuth App client secret |
+| `ADMIN_GITHUB_ID` | No | GitHub numeric user ID for the admin user |
+| `GITHUB_ORG_CHECK` | No | Set to `"true"` to enable org membership restriction (default: off) |
+| `GITHUB_ORG` | No | GitHub org login name to restrict sign-in to (e.g. `"my-company"`) — only used when `GITHUB_ORG_CHECK=true` |
 
 ---
 
@@ -188,10 +197,12 @@ The `User` record is permanent once created. No sign-in event modifies existing 
 
 ### Security
 - `AUTH_SECRET` must be a strong random value; never committed to source control.
-- GitHub OAuth tokens are handled exclusively by NextAuth internals — the application never reads or stores the raw access token.
+- GitHub OAuth tokens are handled exclusively by NextAuth internals — the application never reads or stores the raw access token beyond the org membership check.
 - Session cookies are `httpOnly` and `secure` in production (NextAuth defaults).
 - CSRF protection is built into NextAuth's route handlers.
 - The `ADMIN_GITHUB_ID` check is performed server-side at User creation; it is never exposed to the client.
+- The org membership check (`GITHUB_ORG_CHECK`) is performed server-side in the `signIn` callback; if the GitHub API call fails (network error, bad token), sign-in is denied rather than allowed — fail closed.
+- `read:org` scope is only requested when `GITHUB_ORG_CHECK=true`; the narrower scope is used by default.
 
 ### API version warning (critical for Codey)
 **NextAuth v5 / Auth.js v5 uses a different API from v4.** Key differences:
@@ -269,3 +280,4 @@ This feature **reinforces** existing System Spec assumptions:
 | Date | Change | Reason | Raised By |
 |------|--------|--------|-----------|
 | 2026-05-20 | Initial draft | Feature created | Alex |
+| 2026-05-20 | Added R-AUTH-4 (org restriction), updated env var table, security section | GITHUB_ORG_CHECK / GITHUB_ORG env vars added | Steve |

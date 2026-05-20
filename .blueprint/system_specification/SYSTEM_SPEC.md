@@ -131,6 +131,7 @@ Data is stored indefinitely; no purge policy at this stage.
 - Admins cannot create keys on behalf of other users.
 - Admin status is set via a database flag (`isAdmin`); no self-promotion is possible via the UI.
 - On first sign-in, if the user's GitHub ID matches the `ADMIN_GITHUB_ID` environment variable, `isAdmin` is set to `true` automatically. All other users default to `isAdmin: false`.
+- Optionally, sign-in can be restricted to members of a specific GitHub organisation by setting `GITHUB_ORG_CHECK=true` and `GITHUB_ORG=<org-login>`. Non-members are denied sign-in. Fails closed (GitHub API error = deny).
 
 ### 6.4 Telemetry Ingestion
 
