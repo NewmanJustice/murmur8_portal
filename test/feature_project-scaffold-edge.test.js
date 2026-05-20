@@ -21,21 +21,12 @@ function fileExists(relPath) {
 }
 
 // ---------------------------------------------------------------------------
-// T-10: No middleware.ts protecting routes (deferred to github-auth)
+// T-10: middleware.ts exists (created by github-auth feature)
 // ---------------------------------------------------------------------------
-describe('T-10: middleware.ts must NOT exist at scaffold stage', () => {
-  it('middleware.ts is absent at project root', () => {
-    assert.ok(
-      !fileExists('middleware.ts'),
-      'middleware.ts should not exist — route protection is deferred to github-auth feature'
-    );
-  });
-
-  it('src/middleware.ts is absent', () => {
-    assert.ok(
-      !fileExists('src/middleware.ts'),
-      'src/middleware.ts should not exist — route protection is deferred to github-auth feature'
-    );
+describe('T-10: middleware.ts exists for route protection', () => {
+  it('middleware.ts is present at project root or src/', () => {
+    const exists = fileExists('middleware.ts') || fileExists('src/middleware.ts');
+    assert.ok(exists, 'middleware.ts should exist — created by github-auth feature');
   });
 });
 
