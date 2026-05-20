@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# murmur8
+.claude/implement-queue.json
+.claude/pipeline-history.json
+.claude/stack-config.json
+
+claudeinit.sh
