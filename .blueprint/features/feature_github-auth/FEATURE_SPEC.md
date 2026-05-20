@@ -1,0 +1,271 @@
+# Feature Specification — github-auth
+
+---
+version: 0.1.0
+date: 2026-05-20
+status: draft
+---
+
+## 1. Feature Intent
+
+**Why this feature exists.**
+
+The murmur8 Portal is a private dashboard — anonymous visitors must never access any user data. This feature implements the authentication layer that makes every other feature safe to build.
+
+- **Problem**: The scaffold from `project-scaffold` has NextAuth.js wired but non-functional — no User record is created, no routes are protected, and no session data is available to the application.
+- **User need**: A developer must be able to sign in with their GitHub account, land on a protected dashboard, and sign out cleanly. The system must recognise one specific GitHub user as the Admin without any manual database intervention.
+- **System need**: All downstream features (api-key-management, telemetry-ingestion, run-history-dashboard) depend on a reliable, persistent session and a populated User record.
+
+> Aligns to System Spec §6.1 (Authentication) and §2 (Actors). See `.blueprint/system_specification/SYSTEM_SPEC.md`.
+
+---
+
+## 2. Scope
+
+### In Scope
+
+- GitHub OAuth sign-in via NextAuth.js v5 (Auth.js v5) using the existing `auth.ts` stub
+- Connecting the Prisma adapter (`@auth/prisma-adapter`) so sessions are persisted in PostgreSQL
+- Creating a `User` record on first sign-in, populated from GitHub OAuth profile data (`githubId`, `name`, `email`, `avatarUrl`)
+- Setting `isAdmin = true` on first sign-in if the user's GitHub numeric ID matches the `ADMIN_GITHUB_ID` environment variable; all other users default to `isAdmin = false`
+- Sign-out that clears the database session and redirects to the login page
+- Route protection via `middleware.ts` using the `auth` export — all routes except `/` (the login/landing page) require an active session
+- Unauthenticated requests to protected routes redirect to `/`
+- A login page at `/` with a "Sign in with GitHub" button
+- A minimal post-auth landing route (e.g. `/dashboard`) that confirms successful sign-in (placeholder for later features)
+- Exposing the authenticated user's `id`, `name`, `avatarUrl`, and `isAdmin` to server components via the `auth()` helper
+
+### Out of Scope
+
+- Any dashboard content beyond session confirmation (belongs to `run-history-dashboard`)
+- API key management (belongs to `api-key-management`)
+- Email/password or any OAuth provider other than GitHub
+- Role changes after initial sign-in (Admin status is set once; no UI promotion)
+- Self-serve account deletion
+- Session expiry policy (uses NextAuth defaults)
+- Public/shareable routes
+
+---
+
+## 3. Actors Involved
+
+### Visitor (unauthenticated)
+- Can access `/` (login page) only
+- Cannot access any other route — middleware redirects to `/`
+- Initiates the GitHub OAuth flow by clicking "Sign in with GitHub"
+
+### User (newly authenticated — first sign-in)
+- Completes GitHub OAuth; portal creates a new `User` record
+- `isAdmin` evaluated against `ADMIN_GITHUB_ID` at record creation
+- Redirected to `/dashboard` after successful sign-in
+
+### User (returning — subsequent sign-in)
+- Completes GitHub OAuth; portal looks up existing `User` record via the NextAuth `Account` linkage
+- No `User` fields are updated on re-sign-in (name/avatar drift is deferred)
+- Redirected to `/dashboard` after successful sign-in
+
+### Admin (a User whose GitHub ID matches `ADMIN_GITHUB_ID`)
+- Same sign-in flow as a regular User
+- `isAdmin = true` is set at first sign-in only
+- No separate sign-in page or flow
+
+---
+
+## 4. Behaviour Overview
+
+### Happy-path — first sign-in
+
+1. Visitor opens `/` and sees the sign-in page.
+2. Visitor clicks "Sign in with GitHub"; browser redirects to GitHub OAuth consent.
+3. GitHub redirects back to `/api/auth/callback/github` with an authorisation code.
+4. NextAuth exchanges the code for an access token and fetches the GitHub profile.
+5. `@auth/prisma-adapter` creates `Account` and `Session` records.
+6. The `signIn` callback (or equivalent event hook) checks whether a `User` record exists for this `githubId`.
+   - If not: create `User` with `{ githubId, name, email, avatarUrl, isAdmin: githubId === ADMIN_GITHUB_ID }`.
+   - If yes: no-op (existing record).
+7. A session cookie is set; user is redirected to `/dashboard`.
+
+### Happy-path — return sign-in
+
+1. Visitor opens `/` and signs in via GitHub (steps 2–5 as above).
+2. `User` record already exists — no creation.
+3. Session cookie set; redirected to `/dashboard`.
+
+### Happy-path — sign-out
+
+1. Authenticated user triggers sign-out (button on any protected page).
+2. NextAuth deletes the `Session` record from the database.
+3. Session cookie cleared; user redirected to `/`.
+
+### Route protection
+
+- Any request to a route not matching `/` or `/api/auth/*` is intercepted by `middleware.ts`.
+- If no valid session: redirect to `/`.
+- If valid session: request passes through unchanged.
+
+### Key alternatives
+
+- **OAuth error or user denies consent**: GitHub redirects back with an error parameter; NextAuth surfaces a generic error page or redirect — exact error UI is outside this feature's scope.
+- **Database unreachable during sign-in**: NextAuth/Prisma will throw; user sees an error. No partial state is written.
+
+---
+
+## 5. State & Lifecycle Interactions
+
+This feature is **state-creating** for the `User` entity and **state-transitioning** for the authentication lifecycle.
+
+| State | Created / Entered | How |
+|-------|-------------------|-----|
+| `User` record (new) | First sign-in | `signIn` callback creates row |
+| `Account` record | First sign-in | `@auth/prisma-adapter` creates row |
+| `Session` record (active) | Successful sign-in | `@auth/prisma-adapter` creates row |
+| `Session` record (deleted) | Sign-out | `@auth/prisma-adapter` deletes row |
+| `isAdmin = true` | First sign-in (if matching) | Set at `User` creation; never changed by auth |
+
+The `User` record is permanent once created. No sign-in event modifies existing User fields (this keeps the auth feature minimal and non-destructive).
+
+---
+
+## 6. Rules & Decision Logic
+
+### R-AUTH-1: Login-only public route
+- **Rule**: Only `/` and the NextAuth internal routes (`/api/auth/*`) are accessible without authentication.
+- **Inputs**: Incoming request path, session cookie presence/validity.
+- **Output**: Pass through (authenticated) or redirect to `/` (unauthenticated).
+- **Deterministic**: Yes — middleware always checks session.
+
+### R-AUTH-2: User record creation on first sign-in
+- **Rule**: If no `User` row exists with the incoming `githubId`, create one.
+- **Inputs**: GitHub OAuth profile (`id`, `name`, `email`, `avatar_url`).
+- **Output**: New `User` row; `isAdmin` evaluated per R-AUTH-3.
+- **Deterministic**: Yes.
+
+### R-AUTH-3: Admin elevation via environment variable
+- **Rule**: At User creation time only, if `String(profile.id) === process.env.ADMIN_GITHUB_ID`, set `isAdmin = true`. Otherwise `isAdmin = false`.
+- **Inputs**: GitHub profile numeric `id`, `ADMIN_GITHUB_ID` env var.
+- **Output**: `isAdmin` boolean on the `User` record.
+- **Deterministic**: Yes.
+- **Constraint**: `isAdmin` is never modified by subsequent sign-ins (aligns to System Spec §6.3, R5).
+
+### R-AUTH-4: Session strategy — database sessions
+- **Rule**: NextAuth must be configured for **database sessions** (not JWT), using `@auth/prisma-adapter`.
+- **Rationale**: The portal needs server-side session invalidation (future key revocation may require session termination). Database sessions also allow `Session` records to be directly queried.
+- **Resolves**: OQ1 from System Spec §9.
+
+### R-AUTH-5: No cross-user data via session
+- **Rule**: The session exposes only the authenticated user's own `User.id` (and optionally `name`, `avatarUrl`, `isAdmin`). No other user's data is included.
+- **Deterministic**: Yes — enforced by NextAuth session callback scope.
+
+---
+
+## 7. Dependencies
+
+### Internal
+- **`project-scaffold`** (prerequisite, completed): Provides `auth.ts` stub, Prisma schema with `User`, `Account`, `Session`, `VerificationToken` models, Next.js App Router structure.
+- **Prisma client**: Must be generated and connected to a live PostgreSQL database (`DATABASE_URL` env var).
+
+### External systems
+- **GitHub OAuth App**: Requires `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` env vars. Callback URL must be registered as `<host>/api/auth/callback/github`.
+- **PostgreSQL database**: Live and migrated before first sign-in attempt.
+
+### Packages (already installed from scaffold)
+- `next-auth@beta` (Auth.js v5)
+- `@auth/prisma-adapter@2.11.2`
+- `@prisma/client`
+
+### Environment variables required
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Prisma connection string |
+| `AUTH_SECRET` | NextAuth signing secret (min 32 chars) |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
+| `ADMIN_GITHUB_ID` | GitHub numeric user ID for the admin user |
+
+---
+
+## 8. Non-Functional Considerations
+
+### Security
+- `AUTH_SECRET` must be a strong random value; never committed to source control.
+- GitHub OAuth tokens are handled exclusively by NextAuth internals — the application never reads or stores the raw access token.
+- Session cookies are `httpOnly` and `secure` in production (NextAuth defaults).
+- CSRF protection is built into NextAuth's route handlers.
+- The `ADMIN_GITHUB_ID` check is performed server-side at User creation; it is never exposed to the client.
+
+### API version warning (critical for Codey)
+**NextAuth v5 / Auth.js v5 uses a different API from v4.** Key differences:
+- Session is retrieved via `const session = await auth()` — NOT `getServerSession(authOptions)`.
+- Configuration is in `auth.ts` at the project root (not `pages/api/auth/[...nextauth].ts`).
+- The route handler is exported from `app/api/auth/[...nextauth]/route.ts` as `export const { GET, POST } = handlers`.
+- Middleware is exported as `export { auth as middleware } from "./auth"` from `middleware.ts`.
+- The `session` callback receives `{ session, user }` (database sessions) — not `{ session, token }`.
+
+### Error handling
+- OAuth errors (user denies, GitHub down) surface via NextAuth's default error handling — the application does not need to implement custom OAuth error recovery in this feature.
+- Database errors during `User` creation should propagate as 500 errors; no silent failure.
+
+### Audit
+- `User.createdAt` provides a lightweight record of first authentication time.
+- `Session` records in the database provide an audit trail of active sessions.
+
+---
+
+## 9. Assumptions & Open Questions
+
+### Assumptions
+- The Prisma schema is already migrated against the target PostgreSQL database before this feature is tested (migration scripts from `project-scaffold`).
+- `next-auth@beta` refers specifically to the Auth.js v5 beta — the codebase must not be accidentally downgraded to v4.
+- The GitHub OAuth App callback URL will be configured per environment (`http://localhost:3000/api/auth/callback/github` for dev, production URL for prod).
+- The `ADMIN_GITHUB_ID` env var holds the GitHub **numeric** user ID (e.g. `"12345678"`), not the username.
+
+### Open Questions
+| # | Question | Proposed Resolution |
+|---|----------|-------------------|
+| AQ1 | Should sign-in update `name`/`email`/`avatarUrl` on returning users? | Defer to a later feature or a profile-sync feature; keep auth minimal for now. |
+| AQ2 | Where should unauthenticated users be redirected — `/` or a dedicated `/login`? | Use `/` as the combined landing/login page per current scaffold. |
+| AQ3 | Should `middleware.ts` use the `auth` export directly, or add custom logic? | Use `export { auth as middleware }` with a `config` matcher to skip static assets. No custom logic needed for this feature. |
+
+---
+
+## 10. Impact on System Specification
+
+This feature **reinforces** existing System Spec assumptions:
+
+- Resolves OQ1 (session strategy): **database sessions** selected (see R-AUTH-4). The System Spec should be updated to reflect this decision at `§9 OQ1`.
+- Confirms the `ADMIN_GITHUB_ID` env var mechanism described in §6.3 and §9 OQ5.
+- The Prisma schema already has all required models (`User`, `Account`, `Session`, `VerificationToken`) — no schema changes needed.
+
+**No contradictions with the System Spec.** No deferred changes required at this time.
+
+---
+
+## 11. Handover to BA (Cass)
+
+### Story themes
+
+1. **Sign-in flow** — Visitor sees login page, clicks GitHub sign-in, OAuth completes, redirected to dashboard.
+2. **First-time User creation** — New GitHub user gets a `User` record with correct fields and `isAdmin` evaluation.
+3. **Route protection** — Protected routes redirect unauthenticated visitors to login; authenticated users pass through.
+4. **Sign-out** — Authenticated user signs out, session cleared, redirected to login.
+5. **Admin elevation** — A user whose GitHub ID matches `ADMIN_GITHUB_ID` gets `isAdmin = true` at first sign-in.
+
+### Expected story boundaries
+
+- One story per theme above is appropriate.
+- The admin elevation story should clarify the "set once at creation, never changed" invariant.
+- Route protection stories should cover both the redirect case and the pass-through case.
+- Stories should NOT describe specific UI elements — Codey will design the login page; stories should focus on observable behaviour.
+
+### Areas needing careful story framing
+
+- The NextAuth v5 vs v4 API distinction is a developer concern, not a story concern — Cass should frame stories behaviourally, but include a technical note for Nigel/Codey flagging the v5 API.
+- The "no update on re-sign-in" non-behaviour (AQ1) should be explicitly captured as a constraint in the relevant story to prevent Codey from adding unwanted profile-sync logic.
+
+---
+
+## 12. Change Log (Feature-Level)
+
+| Date | Change | Reason | Raised By |
+|------|--------|--------|-----------|
+| 2026-05-20 | Initial draft | Feature created | Alex |
