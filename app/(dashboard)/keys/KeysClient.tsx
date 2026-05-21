@@ -127,7 +127,7 @@ function RevokeButton({ keyId, keyName }: { keyId: string; keyName: string }) {
           </button>
           <button
             onClick={() => setConfirming(false)}
-            className="text-xs text-starling-silver hover:text-starling-cloud px-3 py-1 rounded transition-colors"
+            className="text-xs text-starling-slate hover:text-starling-ink px-3 py-1 rounded transition-colors"
           >
             Cancel
           </button>
@@ -180,8 +180,8 @@ export function KeysClient({ initialKeys }: KeysClientProps) {
       )}
 
       {/* New Key form */}
-      <div className="bg-starling-dusk border border-starling-slate rounded-brand-lg p-5 mb-6">
-        <h2 className="text-sm font-semibold text-starling-silver mb-3 uppercase tracking-wide">
+      <div className="bg-white border border-starling-cyan/30 rounded-brand-lg p-5 mb-6">
+        <h2 className="text-sm font-semibold text-starling-slate mb-3 uppercase tracking-wide">
           Create new key
         </h2>
         <form action={formAction} className="flex gap-3 items-start">
@@ -192,7 +192,7 @@ export function KeysClient({ initialKeys }: KeysClientProps) {
               placeholder="Key name (e.g. my-saas-project)"
               maxLength={64}
               required
-              className="w-full bg-starling-ink border border-starling-slate rounded-brand text-sm text-starling-cloud placeholder-starling-silver/50 px-3 py-2 focus:outline-none focus:border-starling-sky transition-colors"
+              className="w-full bg-starling-cloud border border-starling-cyan/40 rounded-brand text-sm text-starling-ink placeholder-starling-silver px-3 py-2 focus:outline-none focus:border-starling-sky transition-colors"
             />
             {formState?.error && (
               <p className="mt-1 text-xs text-red-400">{formState.error}</p>
@@ -210,14 +210,14 @@ export function KeysClient({ initialKeys }: KeysClientProps) {
 
       {/* Keys table */}
       {initialKeys.length === 0 ? (
-        <div className="text-center py-16 text-starling-silver text-sm">
+        <div className="text-center py-16 text-starling-slate text-sm">
           No API keys yet. Create one above to get started.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-brand-lg border border-starling-slate">
+        <div className="overflow-x-auto rounded-brand-lg border border-starling-cyan/30 bg-white">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-starling-slate text-starling-silver text-xs uppercase tracking-wide">
+              <tr className="border-b border-starling-cyan/30 bg-starling-cloud/50 text-starling-slate text-xs uppercase tracking-wide">
                 <th className="text-left px-4 py-3">Name</th>
                 <th className="text-left px-4 py-3">Key Prefix</th>
                 <th className="text-left px-4 py-3">Created</th>
@@ -230,19 +230,19 @@ export function KeysClient({ initialKeys }: KeysClientProps) {
               {initialKeys.map((key) => (
                 <tr
                   key={key.id}
-                  className="border-b border-starling-slate/50 last:border-0 hover:bg-starling-dusk/30 transition-colors"
+                  className="border-b border-starling-cyan/20 last:border-0 hover:bg-starling-mist transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-starling-cloud">{key.name}</td>
-                  <td className="px-4 py-3 font-mono text-starling-sky text-xs">{key.keyPrefix}</td>
-                  <td className="px-4 py-3 text-starling-silver">{formatDate(key.createdAt)}</td>
-                  <td className="px-4 py-3 text-starling-silver">{formatDate(key.lastUsedAt)}</td>
+                  <td className="px-4 py-3 font-medium text-starling-ink">{key.name}</td>
+                  <td className="px-4 py-3 font-mono text-starling-blue text-xs">{key.keyPrefix}</td>
+                  <td className="px-4 py-3 text-starling-slate">{formatDate(key.createdAt)}</td>
+                  <td className="px-4 py-3 text-starling-slate">{formatDate(key.lastUsedAt)}</td>
                   <td className="px-4 py-3">
                     {key.revokedAt ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-starling-slate/40 text-starling-silver">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-starling-silver/20 text-starling-slate">
                         Revoked
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-900/40 text-emerald-400">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                         Active
                       </span>
                     )}

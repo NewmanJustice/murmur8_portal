@@ -28,8 +28,8 @@ export default async function AdminKeysPage() {
   const stats = computeAdminStats(keys.map((k) => ({ userId: k.user.id, revokedAt: k.revokedAt })));
 
   return (
-    <main className="min-h-screen bg-starling-night text-starling-cloud">
-      <header className="border-b border-starling-slate/40 bg-starling-dusk/80 backdrop-blur">
+    <main className="min-h-screen bg-starling-cloud text-starling-ink">
+      <header className="border-b border-starling-cyan/30 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Image
@@ -39,13 +39,13 @@ export default async function AdminKeysPage() {
               height={30}
               priority
             />
-            <span className="rounded-full bg-amber-900/40 px-2 py-0.5 text-xs font-semibold uppercase tracking-widest text-amber-400">
+            <span className="rounded-full bg-agent-alex/20 px-2 py-0.5 text-xs font-semibold uppercase tracking-widest text-starling-blue">
               Admin
             </span>
           </div>
           <a
             href="/dashboard"
-            className="text-sm text-starling-silver transition hover:text-starling-cloud"
+            className="text-sm text-starling-slate transition hover:text-starling-ink"
           >
             ← Dashboard
           </a>
@@ -54,8 +54,8 @@ export default async function AdminKeysPage() {
       <div className="max-w-6xl mx-auto px-6 py-10">
         {/* Page heading */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-starling-cloud">All API Keys</h1>
-          <p className="text-sm text-starling-silver mt-1">
+          <h1 className="text-2xl font-semibold text-starling-ink">All API Keys</h1>
+          <p className="text-sm text-starling-slate mt-1">
             All keys across all users. You can revoke any active key.
           </p>
         </div>
@@ -70,10 +70,10 @@ export default async function AdminKeysPage() {
           ].map(({ label, value }) => (
             <div
               key={label}
-              className="bg-starling-dusk border border-starling-slate rounded-brand p-4"
+              className="bg-white border border-starling-cyan/30 rounded-brand p-4"
             >
-              <p className="text-2xl font-semibold text-starling-cloud">{value}</p>
-              <p className="text-xs text-starling-silver mt-0.5">{label}</p>
+              <p className="text-2xl font-semibold text-starling-ink">{value}</p>
+              <p className="text-xs text-starling-slate mt-0.5">{label}</p>
             </div>
           ))}
         </div>

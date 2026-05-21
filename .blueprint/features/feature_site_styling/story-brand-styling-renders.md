@@ -35,6 +35,10 @@ so that the portal is visually coherent and on-brand rather than appearing as un
 **When** all pages load,
 **Then** the DOM structure and existing class names are identical to those before the fix — only the visual appearance changes.
 
+**Given** the fixes are applied,
+**When** I visit the API Keys page (`/keys`) or the Admin Keys page (`/admin/keys`),
+**Then** the page uses the light theme — `bg-starling-cloud` background, white card surfaces, and a light nav header (`bg-white/80 backdrop-blur` with `border-starling-cyan/30` border) — matching the dashboard, not a dark theme.
+
 ## Out of Scope
 
 - Introducing new pages or UI components.

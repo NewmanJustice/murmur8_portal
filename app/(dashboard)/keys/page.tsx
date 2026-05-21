@@ -21,13 +21,24 @@ export default async function KeysPage() {
   const keys = await listApiKeys(session.user.id);
 
   return (
-    <main className="min-h-screen bg-starling-night text-starling-cloud">
+    <main className="min-h-screen bg-starling-cloud text-starling-ink">
+      <header className="border-b border-starling-cyan/30 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+          <h1 className="text-lg font-semibold text-starling-ink">API Keys</h1>
+          <a
+            href="/dashboard"
+            className="text-sm text-starling-slate transition hover:text-starling-ink"
+          >
+            ← Dashboard
+          </a>
+        </div>
+      </header>
       <div className="max-w-5xl mx-auto px-6 py-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-semibold text-starling-cloud">API Keys</h1>
-            <p className="mt-1 text-sm text-starling-silver">
+            <h1 className="text-2xl font-semibold text-starling-ink">API Keys</h1>
+            <p className="mt-1 text-sm text-starling-slate">
               Keys are used to authenticate the murmur8 pipeline client. Each key is shown
               once at creation and cannot be retrieved again.
             </p>

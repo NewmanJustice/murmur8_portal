@@ -34,7 +34,8 @@ type: infrastructure / bug-fix
   2. **Login page logo** — replace the plain "murmur8 Portal" text pill in `app/page.tsx` with a Next.js `<Image>` component pointing to `/murmur8-logo-full.svg`.
   3. **Dashboard nav logo** — replace the `<span className="font-mono ...">murmur8</span>` text in `app/dashboard/page.tsx` with a Next.js `<Image>` component pointing to `/murmur8-logo-compact.svg`.
   4. **Run-detail nav logo** — replace the equivalent `<span className="font-mono ...">murmur8</span>` text in `app/dashboard/runs/[id]/page.tsx` with a Next.js `<Image>` component pointing to `/murmur8-logo-compact.svg`.
-  5. **Admin/keys nav bar** — add a full `<header>` nav bar above the existing `<div className="max-w-6xl mx-auto px-6 py-10">` container in `app/admin/keys/page.tsx`, matching the pattern used in `app/dashboard/page.tsx` and containing the compact logo via `<Image>`. The nav bar must reflect the page's dark theme (`bg-starling-night`). All logo placements must use Next.js `<Image>` (not `<img>`).
+  5. **Admin/keys nav bar** — add a full `<header>` nav bar above the existing `<div className="max-w-6xl mx-auto px-6 py-10">` container in `app/admin/keys/page.tsx`, matching the pattern used in `app/dashboard/page.tsx` and containing the compact logo via `<Image>`. All logo placements must use Next.js `<Image>` (not `<img>`).
+- Apply light theme to both keys pages: `app/(dashboard)/keys/page.tsx` and `app/admin/keys/page.tsx` must use `bg-starling-cloud` as the page background and `text-starling-ink` as the primary text colour, matching `app/dashboard/page.tsx`. Their header bars must use `bg-white/80 backdrop-blur` with `border-b border-starling-cyan/30`.
 
 ### Out of Scope
 
@@ -89,7 +90,8 @@ This feature is **state-constraining** on the build pipeline, not on domain data
 | **RS6** | `app/page.tsx` (login page) must render the full logo via `<Image src="/murmur8-logo-full.svg" alt="murmur8" ... />` using the Next.js `<Image>` component. The plain "murmur8 Portal" text pill must be removed or replaced. |
 | **RS7** | `app/dashboard/page.tsx` must render the compact logo via `<Image src="/murmur8-logo-compact.svg" alt="murmur8" ... />` in its `<header>` nav bar, replacing the `<span className="font-mono ...">murmur8</span>` text. |
 | **RS8** | `app/dashboard/runs/[id]/page.tsx` must render the compact logo via `<Image src="/murmur8-logo-compact.svg" alt="murmur8" ... />` in its `<header>` nav bar, replacing the equivalent `<span className="font-mono ...">murmur8</span>` text. |
-| **RS9** | `app/admin/keys/page.tsx` must have a `<header>` nav bar placed above the `<div className="max-w-6xl mx-auto px-6 py-10">` container. The nav bar must: (a) match the structural pattern of `app/dashboard/page.tsx`'s header; (b) use `bg-starling-night` or equivalent dark background consistent with the page theme; (c) display the compact logo via `<Image src="/murmur8-logo-compact.svg" alt="murmur8" ... />`. |
+| **RS9** | `app/admin/keys/page.tsx` must have a `<header>` nav bar placed above the `<div className="max-w-6xl mx-auto px-6 py-10">` container. The nav bar must: (a) match the structural pattern of `app/dashboard/page.tsx`'s header; (b) use `bg-white/80 backdrop-blur` with `border-b border-starling-cyan/30`, matching the dashboard header; (c) display the compact logo via `<Image src="/murmur8-logo-compact.svg" alt="murmur8" ... />`. |
+| **RS10** | `app/(dashboard)/keys/page.tsx` must use `bg-starling-cloud` as the page background and `text-starling-ink` as the primary text colour. Its header bar must use `bg-white/80 backdrop-blur` with `border-b border-starling-cyan/30`, matching the dashboard. Card/content surfaces must use `bg-white` consistent with the light theme. |
 
 **Decision note on RS2:** Next.js with `"type": "module"` in `package.json` requires PostCSS config to be either named `postcss.config.cjs` or to use `postcss.config.mjs`. The safest and most conventional approach for Next.js 15 is `postcss.config.mjs` with an ESM default export.
 
@@ -148,6 +150,8 @@ Stories require no UI changes — only build-tooling verification. Test approach
 
 **Refinement note (2026-05-20):** The logo/favicon wiring changes (RS5–RS9) are infrastructure changes — they wire existing assets to the correct locations with no new design decisions. No new stories are required. The existing `story-brand-styling-renders.md` covers visual correctness and its acceptance criteria should be updated to include: (a) browser tab displays the murmur8 favicon; (b) login page shows the full logo SVG; (c) dashboard, run-detail, and admin/keys pages all show the compact logo SVG in the nav header; (d) admin/keys page has a proper nav header bar. `story-postcss-config.md` and `story-font-css-variables.md` are unaffected by these changes.
 
+**Refinement note (2026-05-21):** Styling consistency — `story-brand-styling-renders.md` acceptance criteria should be updated to include: (e) the API Keys page (`/keys`) and Admin Keys page (`/admin/keys`) use the light theme (Starling cloud background, white card surfaces, light nav header) matching the dashboard, not the dark theme.
+
 ---
 
 ## 12. Change Log (Feature-Level)
@@ -156,3 +160,4 @@ Stories require no UI changes — only build-tooling verification. Test approach
 |------|--------|--------|-----------|
 | 2026-05-20 | Initial spec created | Tailwind CSS rendering broken due to missing PostCSS config | Alex |
 | 2026-05-20 | Added logo/favicon wiring to §2 Scope, RS5–RS9 to §6, and refinement note to §11 | Add logo/favicon wiring — assets existed in /public/ but were not referenced | Alex |
+| 2026-05-21 | Updated RS9, added RS10, added scope bullet and refinement note to §11 | Keys pages must use light theme matching the dashboard, not dark theme | Alex |

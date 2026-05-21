@@ -63,3 +63,24 @@ placement.
 | story-brand-styling-renders.md | Update acceptance criteria (items 1–5 above) |
 | story-postcss-config.md | No change needed |
 | story-font-css-variables.md | No change needed |
+
+---
+
+# Story Changes — site_styling refinement 2026-05-21
+
+## Summary
+
+Keys pages must use the light theme matching the dashboard, not the dark `bg-starling-night` theme.
+
+## Stories affected
+
+### story-brand-styling-renders.md (site_styling-3)
+
+**Reason:** New acceptance criterion added — the API Keys page (`/keys`) and Admin Keys page (`/admin/keys`) must render with the light Starling Cloud theme (matching the dashboard), not the dark night theme.
+
+**Change:** Added AC: "Given the fixes are applied, When I visit `/keys` or `/admin/keys`, Then the page uses the light theme — `bg-starling-cloud` background, white card surfaces, light nav header."
+
+## Stories NOT affected
+
+- `story-postcss-config.md` — no change
+- `story-font-css-variables.md` — no change

@@ -1,6 +1,6 @@
 /**
  * Tests for feature: site_styling
- * Test IDs: T-SS-01 through T-SS-12
+ * Test IDs: T-SS-01 through T-SS-19
  * Runner: node --test test/feature_site_styling.test.js
  *
  * All tests are pure file-content assertions — no browser, no DOM, no build step.
@@ -200,6 +200,38 @@ describe('logo and favicon wiring', () => {
     assert.ok(
       content.includes('murmur8-logo-compact.svg'),
       `Expected "murmur8-logo-compact.svg" to appear in app/admin/keys/page.tsx but got:\n${content}`
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// light theme on keys pages (RS10, RS9 updated) — matching dashboard theme
+// ---------------------------------------------------------------------------
+
+describe('keys pages light theme', () => {
+  it('T-SS-18: app/(dashboard)/keys/page.tsx uses bg-starling-cloud (light page background)', () => {
+    const filePath = path.join(projectRoot, 'app/(dashboard)/keys/page.tsx');
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(
+      content.includes('bg-starling-cloud'),
+      `Expected "bg-starling-cloud" in app/(dashboard)/keys/page.tsx but got:\n${content}`
+    );
+    assert.ok(
+      !content.includes('bg-starling-night'),
+      `Expected "bg-starling-night" to be absent from app/(dashboard)/keys/page.tsx (should use light theme)`
+    );
+  });
+
+  it('T-SS-19: app/admin/keys/page.tsx uses bg-starling-cloud (light page background, not dark)', () => {
+    const filePath = path.join(projectRoot, 'app/admin/keys/page.tsx');
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(
+      content.includes('bg-starling-cloud'),
+      `Expected "bg-starling-cloud" in app/admin/keys/page.tsx but got:\n${content}`
+    );
+    assert.ok(
+      !content.includes('bg-starling-night'),
+      `Expected "bg-starling-night" to be absent from app/admin/keys/page.tsx (should use light theme)`
     );
   });
 });

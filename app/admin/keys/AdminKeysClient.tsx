@@ -83,7 +83,7 @@ function AdminRevokeButton({
           </button>
           <button
             onClick={() => setConfirming(false)}
-            className="text-xs text-starling-silver hover:text-starling-cloud px-3 py-1 rounded transition-colors"
+            className="text-xs text-starling-slate hover:text-starling-ink px-3 py-1 rounded transition-colors"
           >
             Cancel
           </button>
@@ -108,17 +108,17 @@ function AdminRevokeButton({
 export function AdminKeysClient({ keys }: AdminKeysClientProps) {
   if (keys.length === 0) {
     return (
-      <div className="text-center py-16 text-starling-silver text-sm">
+      <div className="text-center py-16 text-starling-slate text-sm">
         No API keys have been created yet.
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-brand-lg border border-starling-slate">
+    <div className="overflow-x-auto rounded-brand-lg border border-starling-cyan/30 bg-white">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-starling-slate text-starling-silver text-xs uppercase tracking-wide">
+          <tr className="border-b border-starling-cyan/30 bg-starling-cloud/50 text-starling-slate text-xs uppercase tracking-wide">
             <th className="text-left px-4 py-3">Owner</th>
             <th className="text-left px-4 py-3">Name</th>
             <th className="text-left px-4 py-3">Key Prefix</th>
@@ -132,7 +132,7 @@ export function AdminKeysClient({ keys }: AdminKeysClientProps) {
           {keys.map((key) => (
             <tr
               key={key.id}
-              className="border-b border-starling-slate/50 last:border-0 hover:bg-starling-dusk/30 transition-colors"
+              className="border-b border-starling-cyan/20 last:border-0 hover:bg-starling-mist transition-colors"
             >
               {/* Owner */}
               <td className="px-4 py-3">
@@ -147,26 +147,26 @@ export function AdminKeysClient({ keys }: AdminKeysClientProps) {
                       className="rounded-full"
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-starling-slate flex items-center justify-center text-xs text-starling-silver">
+                    <div className="w-6 h-6 rounded-full bg-starling-cyan/30 flex items-center justify-center text-xs text-starling-ink">
                       {(key.user.name ?? '?')[0]?.toUpperCase()}
                     </div>
                   )}
-                  <span className="text-starling-cloud text-xs font-medium">
+                  <span className="text-starling-ink text-xs font-medium">
                     {key.user.name ?? 'Unknown'}
                   </span>
                 </div>
               </td>
-              <td className="px-4 py-3 font-medium text-starling-cloud">{key.name}</td>
-              <td className="px-4 py-3 font-mono text-starling-sky text-xs">{key.keyPrefix}</td>
-              <td className="px-4 py-3 text-starling-silver">{formatDate(key.createdAt)}</td>
-              <td className="px-4 py-3 text-starling-silver">{formatDate(key.lastUsedAt)}</td>
+              <td className="px-4 py-3 font-medium text-starling-ink">{key.name}</td>
+              <td className="px-4 py-3 font-mono text-starling-blue text-xs">{key.keyPrefix}</td>
+              <td className="px-4 py-3 text-starling-slate">{formatDate(key.createdAt)}</td>
+              <td className="px-4 py-3 text-starling-slate">{formatDate(key.lastUsedAt)}</td>
               <td className="px-4 py-3">
                 {key.revokedAt ? (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-starling-slate/40 text-starling-silver">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-starling-silver/20 text-starling-slate">
                     Revoked
                   </span>
                 ) : (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-900/40 text-emerald-400">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                     Active
                   </span>
                 )}
