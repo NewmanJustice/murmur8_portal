@@ -102,6 +102,16 @@ export default async function DashboardPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-10">
+        <div className="flex justify-center mb-8">
+          <Image
+            src="/murmur8-logo-full.svg"
+            alt="murmur8"
+            width={200}
+            height={160}
+            priority
+          />
+        </div>
+
         {/* Insights Panel */}
         <InsightsPanel
           insights={insights}
