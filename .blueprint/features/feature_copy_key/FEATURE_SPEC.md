@@ -54,7 +54,7 @@ Users viewing the API Keys page (`/keys`) can see each key's prefix (e.g. `mm8_d
 ## 4. Behaviour Overview
 
 **Happy path:**
-1. User views the API Keys table. Each row's "Key Prefix" cell displays the prefix string alongside a small copy icon button.
+1. User views the API Keys table. Each row's "Key Prefix" cell displays the prefix string with a small copy icon button immediately to its right, making the spatial relationship between the affordance and its target obvious.
 2. User clicks the copy icon.
 3. The browser writes the prefix string to the system clipboard via the Clipboard API.
 4. The button shows brief success feedback (e.g. icon changes to a checkmark for ~2 seconds), then reverts.
@@ -101,7 +101,7 @@ The copy button's own local state (idle / copied) is ephemeral and resets on tim
 
 ## 7. Dependencies
 
-- **`KeysClient.tsx`** (`app/(dashboard)/keys/KeysClient.tsx`) — the existing client component where the table row for each key is rendered. The copy button will be introduced here in the Key Prefix cell.
+- **`KeysClient.tsx`** (`app/(dashboard)/keys/KeysClient.tsx`) — the existing client component where the table row for each key is rendered. The copy button must be placed inside the Key Prefix `<td>` cell, inline after the prefix text, not in a separate action column. The action column (`<td>`) retains only the `RevokeButton`.
 - **Admin keys panel** (`app/(dashboard)/admin/keys/` — location TBD by Codey; see existing admin-key-panel feature) — if the admin panel renders a similar prefix cell, the same pattern should be applied consistently.
 - **Browser Clipboard API** (`navigator.clipboard.writeText`) — standard Web API, available in all modern browsers under HTTPS. The portal targets Vercel (HTTPS in production); local dev is typically `localhost` (also a secure context).
 - **No new npm dependencies** — the copy mechanic and transient state are implementable with `useState` + `setTimeout`, consistent with the existing component pattern in `KeysClient.tsx`.
@@ -163,3 +163,4 @@ This feature **reinforces** existing system assumptions:
 | Date       | Change         | Reason                  | Raised By |
 |------------|----------------|-------------------------|-----------|
 | 2026-05-21 | Initial draft  | Feature commissioned    | Alex      |
+| 2026-05-21 | Clarified copy button placement — must be inline in Key Prefix cell, not action column | Usability refinement: copy icon should be adjacent to the value it copies | Alex |

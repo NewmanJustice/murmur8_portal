@@ -266,7 +266,12 @@ export function KeysClient({ initialKeys }: KeysClientProps) {
                   className="border-b border-starling-cyan/20 last:border-0 hover:bg-starling-mist transition-colors"
                 >
                   <td className="px-4 py-3 font-medium text-starling-ink">{key.name}</td>
-                  <td className="px-4 py-3 font-mono text-starling-blue text-xs">{key.keyPrefix}</td>
+                  <td className="px-4 py-3 font-mono text-starling-blue text-xs">
+                    <span className="inline-flex items-center gap-1.5">
+                      {key.keyPrefix}
+                      <CopyButton keyPrefix={key.keyPrefix} />
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-starling-slate">{formatDate(key.createdAt)}</td>
                   <td className="px-4 py-3 text-starling-slate">{formatDate(key.lastUsedAt)}</td>
                   <td className="px-4 py-3">
@@ -281,12 +286,9 @@ export function KeysClient({ initialKeys }: KeysClientProps) {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <CopyButton keyPrefix={key.keyPrefix} />
-                      {!key.revokedAt && (
-                        <RevokeButton keyId={key.id} keyName={key.name} />
-                      )}
-                    </div>
+                    {!key.revokedAt && (
+                      <RevokeButton keyId={key.id} keyName={key.name} />
+                    )}
                   </td>
                 </tr>
               ))}

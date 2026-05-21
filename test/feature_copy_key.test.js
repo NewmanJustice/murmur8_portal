@@ -1,6 +1,6 @@
 /**
  * Tests for feature: copy_key
- * Test IDs: T-CK-01 through T-CK-15
+ * Test IDs: T-CK-01 through T-CK-16
  * Runner: node --test test/feature_copy_key.test.js
  *
  * All tests are pure file-content assertions — no browser, no DOM, no build step.
@@ -303,6 +303,45 @@ describe('copy button degradation and a11y', () => {
     assert.ok(
       smallIconPattern.test(adminContent),
       'Expected AdminKeysClient.tsx copy icon to use a compact Tailwind size class (e.g. h-4 w-4, size-4)'
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// copy button placement — inline in key prefix cell (T-CK-16)
+// ---------------------------------------------------------------------------
+
+describe('copy button placement', () => {
+  let keysContent;
+  let adminContent;
+  try {
+    keysContent = fs.readFileSync(keysClientPath, 'utf8');
+  } catch {
+    keysContent = '';
+  }
+  try {
+    adminContent = fs.readFileSync(adminKeysClientPath, 'utf8');
+  } catch {
+    adminContent = '';
+  }
+
+  it('T-CK-16: CopyButton appears in the key prefix table cell, not in a separate action cell', () => {
+    // The key prefix cell renders key.keyPrefix alongside the CopyButton.
+    // We check that CopyButton appears within ~150 chars of key.keyPrefix in the JSX.
+    const keysPrefix = keysContent.indexOf('key.keyPrefix');
+    assert.ok(keysPrefix !== -1, 'Expected key.keyPrefix to appear in KeysClient.tsx');
+    const keysWindow = keysContent.slice(Math.max(0, keysPrefix - 20), keysPrefix + 150);
+    assert.ok(
+      keysWindow.includes('CopyButton'),
+      `Expected CopyButton to appear within the key prefix cell in KeysClient.tsx.\nWindow: ${keysWindow}`
+    );
+
+    const adminPrefix = adminContent.indexOf('key.keyPrefix');
+    assert.ok(adminPrefix !== -1, 'Expected key.keyPrefix to appear in AdminKeysClient.tsx');
+    const adminWindow = adminContent.slice(Math.max(0, adminPrefix - 20), adminPrefix + 150);
+    assert.ok(
+      adminWindow.includes('CopyButton'),
+      `Expected CopyButton to appear within the key prefix cell in AdminKeysClient.tsx.\nWindow: ${adminWindow}`
     );
   });
 });
