@@ -26,6 +26,9 @@ export interface InsightsRun {
   totalCost: unknown; // Prisma returns Decimal; cast via Number()
   failedStage: string | null;
   stages: unknown;
+  type: string | null;
+  slug: string | null;
+  stage: string | null;
 }
 
 export interface AggregateInsights {
@@ -33,6 +36,11 @@ export interface AggregateInsights {
   successRate: number | null;
   avgDurationMs: number | null;
   totalCost: number;
+  avgCostPerRun: number;
+  refinementRate: number;
+  featureRuns: number;
+  refinementRuns: number;
+  stageSuccessRates: Record<string, number>;
 }
 
 export interface StageAverage {
@@ -54,7 +62,17 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
   const totalRuns = runs.length;
 
   if (totalRuns === 0) {
-    return { totalRuns: 0, successRate: null, avgDurationMs: null, totalCost: 0 };
+    return {
+      totalRuns: 0,
+      successRate: null,
+      avgDurationMs: null,
+      totalCost: 0,
+      avgCostPerRun: 0,
+      refinementRate: 0,
+      featureRuns: 0,
+      refinementRuns: 0,
+      stageSuccessRates: {},
+    };
   }
 
   // Success rate
@@ -75,7 +93,37 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
     return sum + cost;
   }, 0);
 
-  return { totalRuns, successRate, avgDurationMs, totalCost };
+  // Avg cost per run
+  const avgCostPerRun = totalRuns > 0 ? totalCost / totalRuns : 0;
+
+  // Runs by type
+  const featureRuns = runs.filter(r => r.type === "feature").length;
+  const refinementRuns = runs.filter(r => r.type === "refinement").length;
+
+  // Refinement rate: % of distinct slugs that have at least one refinement run
+  const allSlugs = new Set(runs.map(r => r.slug).filter((s): s is string => s !== null && s !== undefined));
+  const slugsWithRefinement = new Set(
+    runs.filter(r => r.type === 'refinement' && r.slug !== null && r.slug !== undefined).map(r => r.slug as string)
+  );
+  const refinementRate = allSlugs.size > 0
+    ? parseFloat(((slugsWithRefinement.size / allSlugs.size) * 100).toFixed(1))
+    : 0;
+
+  // Success rate by stage (keyed by run.stage, skip null/undefined)
+  const stageGroups = new Map<string, { total: number; success: number }>();
+  for (const run of runs) {
+    if (run.stage === null || run.stage === undefined) continue;
+    const group = stageGroups.get(run.stage) ?? { total: 0, success: 0 };
+    group.total += 1;
+    if (run.status === 'success') group.success += 1;
+    stageGroups.set(run.stage, group);
+  }
+  const stageSuccessRates: Record<string, number> = {};
+  for (const [stageKey, { total, success }] of stageGroups.entries()) {
+    stageSuccessRates[stageKey] = parseFloat(((success / total) * 100).toFixed(1));
+  }
+
+  return { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates };
 }
 
 // ---------------------------------------------------------------------------

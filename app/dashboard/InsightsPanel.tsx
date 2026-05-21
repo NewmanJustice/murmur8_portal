@@ -59,7 +59,7 @@ interface InsightsPanelProps {
 }
 
 export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage }: InsightsPanelProps) {
-  const { totalRuns, successRate, avgDurationMs, totalCost } = insights;
+  const { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates } = insights;
 
   const successRateDisplay = successRate !== null ? `${successRate}%` : '—';
   const avgDurationDisplay = avgDurationMs !== null ? formatDuration(avgDurationMs) : '—';
@@ -75,6 +75,28 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
         <StatCard label="Success Rate" value={successRateDisplay} accent />
         <StatCard label="Avg Duration" value={avgDurationDisplay} />
         <StatCard label="Total Cost" value={totalCostDisplay} />
+        <StatCard label="Avg Cost / Run" value={formatCost(avgCostPerRun)} />
+        <StatCard label="Refinement Rate" value={`${refinementRate}%`} />
+        <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">Runs by Type</p>
+          <p className="mt-1 text-sm text-starling-ink">
+            <span className="font-semibold">Feature:</span> {featureRuns}
+          </p>
+          <p className="text-sm text-starling-ink">
+            <span className="font-semibold">Refinement:</span> {refinementRuns}
+          </p>
+        </div>
+        {Object.keys(stageSuccessRates).length > 0 && (
+          <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">Stage Success Rates</p>
+            {Object.entries(stageSuccessRates).map(([stageKey, rate]) => (
+              <p key={stageKey} className="mt-1 text-sm text-starling-ink">
+                <span className={`font-mono font-semibold ${stageAccentClass(stageKey).split(' ')[0]}`}>{stageKey}</span>
+                {': '}{rate}%
+              </p>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Stage breakdown + failure callout */}
