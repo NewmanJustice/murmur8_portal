@@ -38,6 +38,39 @@ function formatDate(d: Date | null) {
 }
 
 // ---------------------------------------------------------------------------
+// CopyButton — per-row copy key prefix to clipboard
+// ---------------------------------------------------------------------------
+function CopyButton({ keyPrefix }: { keyPrefix: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    try {
+      navigator.clipboard.writeText(keyPrefix).then(() => setCopied(true)).catch(() => {});
+    } catch {}
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      aria-label="Copy key prefix"
+      className="text-starling-slate hover:text-starling-ink transition-colors"
+    >
+      {copied ? (
+        <svg className="h-4 w-4 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z" clipRule="evenodd" />
+        </svg>
+      ) : (
+        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+          <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // AdminRevokeButton — per-row revoke with confirmation; shows owner name
 // ---------------------------------------------------------------------------
 function AdminRevokeButton({
@@ -172,13 +205,16 @@ export function AdminKeysClient({ keys }: AdminKeysClientProps) {
                 )}
               </td>
               <td className="px-4 py-3">
-                {!key.revokedAt && (
-                  <AdminRevokeButton
-                    keyId={key.id}
-                    keyName={key.name}
-                    ownerName={key.user.name ?? 'Unknown'}
-                  />
-                )}
+                <div className="flex items-center gap-2">
+                  <CopyButton keyPrefix={key.keyPrefix} />
+                  {!key.revokedAt && (
+                    <AdminRevokeButton
+                      keyId={key.id}
+                      keyName={key.name}
+                      ownerName={key.user.name ?? 'Unknown'}
+                    />
+                  )}
+                </div>
               </td>
             </tr>
           ))}
