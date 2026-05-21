@@ -59,7 +59,7 @@ interface InsightsPanelProps {
 }
 
 export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage }: InsightsPanelProps) {
-  const { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates } = insights;
+  const { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates, last7Days, last30Days, topSlugByRunCount, topSlugByCost, avgFeedbackRating } = insights;
 
   const successRateDisplay = successRate !== null ? `${successRate}%` : '—';
   const avgDurationDisplay = avgDurationMs !== null ? formatDuration(avgDurationMs) : '—';
@@ -97,6 +97,33 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
             ))}
           </div>
         )}
+        <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">Run Velocity</p>
+          <p className="mt-1 text-sm text-starling-ink">
+            <span className="font-semibold">Last 7 Days:</span> {last7Days}
+          </p>
+          <p className="text-sm text-starling-ink">
+            <span className="font-semibold">Last 30 Days:</span> {last30Days}
+          </p>
+        </div>
+        <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">Top Feature (Runs)</p>
+          <p className="mt-1 text-lg font-extrabold text-starling-ink truncate">
+            {topSlugByRunCount ?? '—'}
+          </p>
+        </div>
+        <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">Top Feature (Cost $)</p>
+          <p className="mt-1 text-lg font-extrabold text-starling-ink truncate">
+            {topSlugByCost ?? '—'}
+          </p>
+        </div>
+        <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">Avg Feedback Rating</p>
+          <p className="mt-1 text-2xl font-extrabold text-starling-ink">
+            {avgFeedbackRating !== null ? `${avgFeedbackRating} / 5` : '—'}
+          </p>
+        </div>
       </div>
 
       {/* Stage breakdown + failure callout */}

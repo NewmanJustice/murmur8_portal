@@ -29,6 +29,7 @@ export interface InsightsRun {
   type: string | null;
   slug: string | null;
   stage: string | null;
+  startedAt: Date | null;
 }
 
 export interface AggregateInsights {
@@ -41,6 +42,11 @@ export interface AggregateInsights {
   featureRuns: number;
   refinementRuns: number;
   stageSuccessRates: Record<string, number>;
+  last7Days: number;
+  last30Days: number;
+  topSlugByRunCount: string | null;
+  topSlugByCost: string | null;
+  avgFeedbackRating: number | null;
 }
 
 export interface StageAverage {
@@ -72,6 +78,11 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
       featureRuns: 0,
       refinementRuns: 0,
       stageSuccessRates: {},
+      last7Days: 0,
+      last30Days: 0,
+      topSlugByRunCount: null,
+      topSlugByCost: null,
+      avgFeedbackRating: null,
     };
   }
 
@@ -127,7 +138,68 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
     stageSuccessRates[stageKey] = parseFloat(((success / total) * 100).toFixed(1));
   }
 
-  return { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates };
+  // Run velocity (count runs with startedAt within last 7 / 30 days)
+  const now = Date.now();
+  const ms7 = 7 * 24 * 60 * 60 * 1000;
+  const ms30 = 30 * 24 * 60 * 60 * 1000;
+  let last7Days = 0;
+  let last30Days = 0;
+  for (const run of runs) {
+    if (run.startedAt === null || run.startedAt === undefined) continue;
+    const ts = new Date(run.startedAt).getTime();
+    if (now - ts <= ms7) last7Days += 1;
+    if (now - ts <= ms30) last30Days += 1;
+  }
+
+  // Top slug by run count (alphabetical tie-break)
+  const slugRunCounts = new Map<string, number>();
+  const slugCostTotals = new Map<string, number>();
+  for (const run of runs) {
+    if (run.slug === null || run.slug === undefined) continue;
+    slugRunCounts.set(run.slug, (slugRunCounts.get(run.slug) ?? 0) + 1);
+    const cost = run.totalCost !== null && run.totalCost !== undefined ? Number(run.totalCost) : 0;
+    slugCostTotals.set(run.slug, (slugCostTotals.get(run.slug) ?? 0) + cost);
+  }
+
+  let topSlugByRunCount: string | null = null;
+  let maxRunCount = 0;
+  for (const [slug, count] of slugRunCounts.entries()) {
+    if (count > maxRunCount || (count === maxRunCount && topSlugByRunCount !== null && slug.localeCompare(topSlugByRunCount) < 0)) {
+      maxRunCount = count;
+      topSlugByRunCount = slug;
+    }
+  }
+
+  let topSlugByCost: string | null = null;
+  let maxCost = 0;
+  for (const [slug, cost] of slugCostTotals.entries()) {
+    if (cost > maxCost || (cost === maxCost && topSlugByCost !== null && slug.localeCompare(topSlugByCost) < 0)) {
+      maxCost = cost;
+      topSlugByCost = slug;
+    }
+  }
+
+  // Avg feedback rating (traverse stages JSONB for feedback.rating in [1,5])
+  const ratings: number[] = [];
+  for (const run of runs) {
+    const stagesObj = run.stages;
+    if (stagesObj === null || stagesObj === undefined) continue;
+    if (typeof stagesObj !== 'object' || Array.isArray(stagesObj)) continue;
+    for (const stageVal of Object.values(stagesObj as Record<string, unknown>)) {
+      if (stageVal === null || typeof stageVal !== 'object') continue;
+      const stageRecord = stageVal as Record<string, unknown>;
+      const feedback = stageRecord.feedback;
+      if (feedback === null || typeof feedback !== 'object') continue;
+      const ratingRaw = (feedback as Record<string, unknown>).rating;
+      if (typeof ratingRaw !== 'number') continue;
+      if (ratingRaw >= 1 && ratingRaw <= 5) ratings.push(ratingRaw);
+    }
+  }
+  const avgFeedbackRating: number | null = ratings.length > 0
+    ? parseFloat((ratings.reduce((s, r) => s + r, 0) / ratings.length).toFixed(1))
+    : null;
+
+  return { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates, last7Days, last30Days, topSlugByRunCount, topSlugByCost, avgFeedbackRating };
 }
 
 // ---------------------------------------------------------------------------
