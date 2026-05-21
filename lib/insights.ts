@@ -109,14 +109,18 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
     ? parseFloat(((slugsWithRefinement.size / allSlugs.size) * 100).toFixed(1))
     : 0;
 
-  // Success rate by stage (keyed by run.stage, skip null/undefined)
+  // Success rate by stage (keyed by stage key present in JSONB stages field)
   const stageGroups = new Map<string, { total: number; success: number }>();
   for (const run of runs) {
-    if (run.stage === null || run.stage === undefined) continue;
-    const group = stageGroups.get(run.stage) ?? { total: 0, success: 0 };
-    group.total += 1;
-    if (run.status === 'success') group.success += 1;
-    stageGroups.set(run.stage, group);
+    const stagesObj = run.stages;
+    if (stagesObj === null || stagesObj === undefined) continue;
+    if (typeof stagesObj !== 'object' || Array.isArray(stagesObj)) continue;
+    for (const stageKey of Object.keys(stagesObj as Record<string, unknown>)) {
+      const group = stageGroups.get(stageKey) ?? { total: 0, success: 0 };
+      group.total += 1;
+      if (run.status === 'success') group.success += 1;
+      stageGroups.set(stageKey, group);
+    }
   }
   const stageSuccessRates: Record<string, number> = {};
   for (const [stageKey, { total, success }] of stageGroups.entries()) {

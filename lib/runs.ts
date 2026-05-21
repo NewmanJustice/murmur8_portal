@@ -152,8 +152,7 @@ export async function getInsightsData(userId: string): Promise<InsightsRun[]> {
       stages: true,
       type: true,
       slug: true,
-      stage: true,
     },
   });
-  return runs.map((r) => ({ ...r, totalCost: r.totalCost ? r.totalCost.toNumber() : null }));
+  return runs.map((r) => ({ ...r, totalCost: r.totalCost ? r.totalCost.toNumber() : null, stage: null }));
 }
