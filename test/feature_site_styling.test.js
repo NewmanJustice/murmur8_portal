@@ -1,6 +1,6 @@
 /**
  * Tests for feature: site_styling
- * Test IDs: T-SS-01 through T-SS-19
+ * Test IDs: T-SS-01 through T-SS-20
  * Runner: node --test test/feature_site_styling.test.js
  *
  * All tests are pure file-content assertions — no browser, no DOM, no build step.
@@ -232,6 +232,19 @@ describe('keys pages light theme', () => {
     assert.ok(
       !content.includes('bg-starling-night'),
       `Expected "bg-starling-night" to be absent from app/admin/keys/page.tsx (should use light theme)`
+    );
+  });
+
+  it('T-SS-20: app/(dashboard)/keys/page.tsx uses Next.js Image with /murmur8-logo-compact.svg in the header', () => {
+    const filePath = path.join(projectRoot, 'app/(dashboard)/keys/page.tsx');
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(
+      content.includes('murmur8-logo-compact.svg'),
+      `Expected "murmur8-logo-compact.svg" to appear in app/(dashboard)/keys/page.tsx but got:\n${content}`
+    );
+    assert.ok(
+      content.includes('Image'),
+      `Expected Next.js "Image" import/usage in app/(dashboard)/keys/page.tsx but got:\n${content}`
     );
   });
 });

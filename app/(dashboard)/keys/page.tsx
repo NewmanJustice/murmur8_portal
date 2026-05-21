@@ -7,6 +7,7 @@
 
 import { getSession } from '@/auth';
 import { redirect } from 'next/navigation';
+import Image from 'next/image';
 import { listApiKeys } from '@/lib/api-keys-db';
 import { KeysClient } from './KeysClient';
 
@@ -24,7 +25,13 @@ export default async function KeysPage() {
     <main className="min-h-screen bg-starling-cloud text-starling-ink">
       <header className="border-b border-starling-cyan/30 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <h1 className="text-lg font-semibold text-starling-ink">API Keys</h1>
+          <Image
+            src="/murmur8-logo-compact.svg"
+            alt="murmur8"
+            width={120}
+            height={30}
+            priority
+          />
           <a
             href="/dashboard"
             className="text-sm text-starling-slate transition hover:text-starling-ink"
