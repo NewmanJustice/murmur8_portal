@@ -30,6 +30,7 @@ export interface InsightsRun {
   slug: string | null;
   stage: string | null;
   startedAt: Date | null;
+  repoName: string | null;
 }
 
 export interface AggregateInsights {
@@ -44,6 +45,7 @@ export interface AggregateInsights {
   stageSuccessRates: Record<string, number>;
   last7Days: number;
   last30Days: number;
+  topRepoByRunCount: string | null;
   avgFeedbackRating: number | null;
 }
 
@@ -78,6 +80,7 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
       stageSuccessRates: {},
       last7Days: 0,
       last30Days: 0,
+      topRepoByRunCount: null,
       avgFeedbackRating: null,
     };
   }
@@ -147,6 +150,21 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
     if (now - ts <= ms30) last30Days += 1;
   }
 
+  // Top repo by run count (alphabetical tie-break)
+  const repoRunCounts = new Map<string, number>();
+  for (const run of runs) {
+    if (run.repoName === null || run.repoName === undefined) continue;
+    repoRunCounts.set(run.repoName, (repoRunCounts.get(run.repoName) ?? 0) + 1);
+  }
+  let topRepoByRunCount: string | null = null;
+  let maxRepoCount = 0;
+  for (const [repo, count] of repoRunCounts.entries()) {
+    if (count > maxRepoCount || (count === maxRepoCount && topRepoByRunCount !== null && repo.localeCompare(topRepoByRunCount) < 0)) {
+      maxRepoCount = count;
+      topRepoByRunCount = repo;
+    }
+  }
+
   // Avg feedback rating (traverse stages JSONB for feedback.rating in [1,5])
   const ratings: number[] = [];
   for (const run of runs) {
@@ -167,7 +185,7 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
     ? parseFloat((ratings.reduce((s, r) => s + r, 0) / ratings.length).toFixed(1))
     : null;
 
-  return { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates, last7Days, last30Days, avgFeedbackRating };
+  return { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates, last7Days, last30Days, topRepoByRunCount, avgFeedbackRating };
 }
 
 // ---------------------------------------------------------------------------

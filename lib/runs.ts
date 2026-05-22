@@ -153,6 +153,7 @@ export async function getInsightsData(userId: string): Promise<InsightsRun[]> {
       type: true,
       slug: true,
       startedAt: true,
+      repoName: true,
     },
   });
   return runs.map((r) => ({ ...r, totalCost: r.totalCost ? r.totalCost.toNumber() : null, stage: null }));

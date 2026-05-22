@@ -59,7 +59,7 @@ interface InsightsPanelProps {
 }
 
 export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage }: InsightsPanelProps) {
-  const { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates, last7Days, last30Days, avgFeedbackRating } = insights;
+  const { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates, last7Days, last30Days, topRepoByRunCount, avgFeedbackRating } = insights;
 
   const successRateDisplay = successRate !== null ? `${successRate}%` : '—';
   const avgDurationDisplay = avgDurationMs !== null ? formatDuration(avgDurationMs) : '—';
@@ -122,6 +122,7 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
             </p>
           </div>
         )}
+        <StatCard label="Most Active Repo" value={topRepoByRunCount ?? '—'} />
       </div>
 
       {/* Stage breakdown + failure callout */}
