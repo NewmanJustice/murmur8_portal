@@ -21,6 +21,8 @@ export type ValidatedPayload = {
   totalDurationMs: number;
   totalCost?: number | null;
   commitHash?: string | null;
+  repoOwner?: string | null;
+  repoName?: string | null;
   failedStage?: string | null;
   pausedAfter?: string | null;
   parentRunId?: string | null;
@@ -126,6 +128,20 @@ export function validatePayload(body: unknown): ValidationResult {
     });
   }
 
+  // repoOwner — optional non-empty string
+  if (b.repoOwner !== undefined && b.repoOwner !== null) {
+    if (typeof b.repoOwner !== 'string' || b.repoOwner.trim() === '') {
+      errors.push({ field: 'repoOwner', message: 'repoOwner must be a non-empty string if provided' });
+    }
+  }
+
+  // repoName — optional non-empty string
+  if (b.repoName !== undefined && b.repoName !== null) {
+    if (typeof b.repoName !== 'string' || b.repoName.trim() === '') {
+      errors.push({ field: 'repoName', message: 'repoName must be a non-empty string if provided' });
+    }
+  }
+
   if (errors.length > 0) {
     return { success: false, errors };
   }
@@ -140,6 +156,8 @@ export function validatePayload(body: unknown): ValidationResult {
     totalDurationMs: b.totalDurationMs as number,
     totalCost: (b.totalCost as number | null | undefined) ?? null,
     commitHash: (b.commitHash as string | null | undefined) ?? null,
+    repoOwner: (b.repoOwner as string | null | undefined) ?? null,
+    repoName: (b.repoName as string | null | undefined) ?? null,
     failedStage: (b.failedStage as string | null | undefined) ?? null,
     pausedAfter: (b.pausedAfter as string | null | undefined) ?? null,
     parentRunId: (b.parentRunId as string | null | undefined) ?? null,
@@ -174,6 +192,8 @@ export function buildRunData(
     totalDurationMs: payload.totalDurationMs,
     totalCost: payload.totalCost ?? null,
     commitHash: payload.commitHash ?? null,
+    repoOwner: payload.repoOwner ?? null,
+    repoName: payload.repoName ?? null,
     failedStage: payload.failedStage ?? null,
     pausedAfter: payload.pausedAfter ?? null,
     parentRunId: payload.parentRunId ?? null,
