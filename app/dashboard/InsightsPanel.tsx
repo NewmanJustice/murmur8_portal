@@ -151,17 +151,13 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
           </table>
         </div>
 
-        {/* Failure callout — only shown when there are failures */}
         {mostCommonFailureStage !== null && (
-          <div className="rounded-brand border border-red-200 bg-red-50 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-red-500">
+          <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">
               Most Common Failure Stage
             </p>
-            <p className="mt-2 font-mono text-lg font-extrabold text-red-700">
+            <p className="mt-1 text-2xl font-extrabold text-starling-ink">
               {mostCommonFailureStage}
-            </p>
-            <p className="mt-1 text-xs text-red-400">
-              This stage fails more often than any other in your pipeline.
             </p>
           </div>
         )}
