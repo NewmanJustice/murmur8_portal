@@ -10,8 +10,8 @@
 
 The InsightsPanel (post `add_insights`) surfaces eight metrics: total runs, success rate, average duration, total cost, average cost/run, refinement rate, runs by type, and stage success rates. Developers using murmur8 regularly still lack visibility into pipeline throughput over time, per-slug effort concentration, and average agent quality calibration — gaps that make it hard to answer operational questions like "are we shipping faster than last month?", "which feature is eating the most pipeline runs?", and "are our agents getting better or worse at self-assessing quality?"
 
-- **Problem:** No velocity or trend signal — the current panel shows all-time aggregates with no temporal dimension. No slug-level breakdown — it is impossible to tell which features are outliers in cost or run count. No feedback quality signal — stage feedback ratings are collected per run but never surfaced in the panel.
-- **User need:** A developer wants to answer "how many runs per day/week?", "which slug has the most runs or highest cost?", and "what is the average agent feedback rating across stages?" from the dashboard without querying raw data.
+- **Problem:** No velocity or trend signal — the current panel shows all-time aggregates with no temporal dimension. No feedback quality signal — stage feedback ratings are collected per run but never surfaced in the panel.
+- **User need:** A developer wants to answer "how many runs per day/week?" and "what is the average agent feedback rating across stages?" from the dashboard without querying raw data.
 - **System alignment:** The System Spec (`/workspaces/murmur8/murmur8_portal/.blueprint/system_specification/SYSTEM_SPEC.md` §6.7) describes the Insights Panel as a surface for aggregate stats. This feature extends that surface within the existing read-only, server-side computation pattern. No schema changes required.
 
 ---
@@ -20,16 +20,14 @@ The InsightsPanel (post `add_insights`) surfaces eight metrics: total runs, succ
 
 ### In Scope
 
-Four new computed metrics, all derivable from existing `Run` table fields and the `stages` JSONB column:
+Two new computed metrics, all derivable from existing `Run` table fields and the `stages` JSONB column:
 
 1. **Run velocity** — count of runs in the last 7 days and last 30 days (two sub-values in one card)
-2. **Top slug by run count** — the slug with the most runs; displayed as slug name + run count
-3. **Top slug by total cost** — the slug with the highest summed `totalCost`; displayed as slug name + formatted cost
-4. **Average agent feedback rating** — mean of all `stages[*].feedback.rating` values across all runs and all stages (1–5 scale); displayed as a decimal to one place (e.g. "3.8 / 5")
+2. **Average agent feedback rating** — mean of all `stages[*].feedback.rating` values across all runs and all stages (1–5 scale); displayed as a decimal to one place (e.g. "3.8 / 5")
 
 Changes required:
-- Extend `AggregateInsights` interface in `lib/insights.ts` with four new fields
-- Extend `computeInsights()` in `lib/insights.ts` to compute all four new values
+- Extend `AggregateInsights` interface in `lib/insights.ts` with two new fields
+- Extend `computeInsights()` in `lib/insights.ts` to compute both new values
 - Add corresponding display cards to `app/dashboard/InsightsPanel.tsx`
 - Pass `startedAt` or `completedAt` timestamp into `InsightsRun` type so velocity can be computed
 
@@ -66,16 +64,6 @@ When the dashboard loads, `getInsightsData()` fetches all Run records (including
 - Displayed as a single card with two sub-lines: "Last 7 days: N" and "Last 30 days: N"
 - Degrades to "0" / "0" when no recent runs exist
 
-**Top slug by run count:**
-- Identifies the slug string with the greatest number of Run records
-- Displayed as slug name + count (e.g. "user-auth — 14 runs")
-- Degrades to "—" when no runs exist; ties broken alphabetically (first slug wins)
-
-**Top slug by total cost:**
-- Aggregates `totalCost` per slug, identifies the slug with the highest sum
-- Displayed as slug name + formatted cost (e.g. "user-auth — $0.84")
-- Degrades to "—" when no runs with cost data exist; ties broken alphabetically
-
 **Average agent feedback rating:**
 - Iterates over all runs, digs into `stages` JSONB, collects every `stages[*].feedback.rating` value that is a number in [1, 5]
 - Computes arithmetic mean across all collected ratings
@@ -101,22 +89,7 @@ This feature is **state-reading only** — it does not create, transition, or co
 - Edge: null datetime values for a run → that run is excluded from velocity counts
 - Deterministic
 
-**Rule 2 — Top slug by run count**
-- Inputs: array of Run records with `slug` field
-- Output: `{ slug: string, count: number } | null`
-- Null slugs are excluded from grouping
-- Ties: if two slugs have equal run counts, the alphabetically first slug is returned
-- Deterministic
-
-**Rule 3 — Top slug by total cost**
-- Inputs: array of Run records with `slug` and `totalCost` fields
-- Output: `{ slug: string, totalCost: number } | null`
-- Null `totalCost` is treated as `0`; null `slug` is excluded
-- If all slugs have `totalCost = 0`, the alphabetically first slug is returned with cost `0`
-- If no non-null slugs, returns `null`
-- Deterministic
-
-**Rule 4 — Average agent feedback rating**
+**Rule 2 — Average agent feedback rating**
 - Inputs: array of Run records with `stages` JSONB field
 - Output: `number | null` — arithmetic mean of all `stages[*].feedback.rating` values, rounded to one decimal place
 - Only numeric values in the range [1, 5] (inclusive) are collected; non-numeric or out-of-range values are skipped
@@ -173,17 +146,15 @@ The System Spec §6.7 mentions "basic aggregate insights" as in scope. This feat
 
 **Story themes:**
 - Viewing pipeline throughput over time (run velocity)
-- Identifying highest-effort features (top slug by run count and cost)
 - Assessing agent quality calibration (average feedback rating)
 
 **Expected story boundaries:**
-- One story per new metric card is appropriate, or group the two "top slug" metrics (run count + cost) into one story
+- One story per new metric card is appropriate
 - Velocity story should specify both 7-day and 30-day windows explicitly in acceptance criteria
 - Average rating story should specify the [1,5] valid range filter and the "—" fallback
 
 **Areas needing careful story framing:**
 - Velocity is time-relative — acceptance criteria should specify "relative to current server time at render", not a fixed date
-- Tie-breaking rules for top-slug metrics should be explicit in acceptance criteria to ensure deterministic test cases
 - Rating aggregation should clarify it spans all stages and all runs (not per-stage)
 
 ---

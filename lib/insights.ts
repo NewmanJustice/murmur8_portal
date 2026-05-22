@@ -44,8 +44,6 @@ export interface AggregateInsights {
   stageSuccessRates: Record<string, number>;
   last7Days: number;
   last30Days: number;
-  topSlugByRunCount: string | null;
-  topSlugByCost: string | null;
   avgFeedbackRating: number | null;
 }
 
@@ -80,8 +78,6 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
       stageSuccessRates: {},
       last7Days: 0,
       last30Days: 0,
-      topSlugByRunCount: null,
-      topSlugByCost: null,
       avgFeedbackRating: null,
     };
   }
@@ -151,34 +147,6 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
     if (now - ts <= ms30) last30Days += 1;
   }
 
-  // Top slug by run count (alphabetical tie-break)
-  const slugRunCounts = new Map<string, number>();
-  const slugCostTotals = new Map<string, number>();
-  for (const run of runs) {
-    if (run.slug === null || run.slug === undefined) continue;
-    slugRunCounts.set(run.slug, (slugRunCounts.get(run.slug) ?? 0) + 1);
-    const cost = run.totalCost !== null && run.totalCost !== undefined ? Number(run.totalCost) : 0;
-    slugCostTotals.set(run.slug, (slugCostTotals.get(run.slug) ?? 0) + cost);
-  }
-
-  let topSlugByRunCount: string | null = null;
-  let maxRunCount = 0;
-  for (const [slug, count] of slugRunCounts.entries()) {
-    if (count > maxRunCount || (count === maxRunCount && topSlugByRunCount !== null && slug.localeCompare(topSlugByRunCount) < 0)) {
-      maxRunCount = count;
-      topSlugByRunCount = slug;
-    }
-  }
-
-  let topSlugByCost: string | null = null;
-  let maxCost = 0;
-  for (const [slug, cost] of slugCostTotals.entries()) {
-    if (cost > maxCost || (cost === maxCost && topSlugByCost !== null && slug.localeCompare(topSlugByCost) < 0)) {
-      maxCost = cost;
-      topSlugByCost = slug;
-    }
-  }
-
   // Avg feedback rating (traverse stages JSONB for feedback.rating in [1,5])
   const ratings: number[] = [];
   for (const run of runs) {
@@ -199,7 +167,7 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
     ? parseFloat((ratings.reduce((s, r) => s + r, 0) / ratings.length).toFixed(1))
     : null;
 
-  return { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates, last7Days, last30Days, topSlugByRunCount, topSlugByCost, avgFeedbackRating };
+  return { totalRuns, successRate, avgDurationMs, totalCost, avgCostPerRun, refinementRate, featureRuns, refinementRuns, stageSuccessRates, last7Days, last30Days, avgFeedbackRating };
 }
 
 // ---------------------------------------------------------------------------
