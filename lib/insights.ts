@@ -52,6 +52,8 @@ export interface AggregateInsights {
 export interface StageAverage {
   key: string;
   avgDurationMs: number | null;
+  avgTokens: number | null;
+  avgFeedbackRating: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -201,6 +203,8 @@ export function computeInsights(runs: InsightsRun[]): AggregateInsights {
 export function computeStageAverages(runs: InsightsRun[]): StageAverage[] {
   return STAGE_ORDER.map(stageKey => {
     const durations: number[] = [];
+    const tokensList: number[] = [];
+    const ratingsList: number[] = [];
 
     for (const run of runs) {
       const stages = run.stages;
@@ -213,9 +217,26 @@ export function computeStageAverages(runs: InsightsRun[]): StageAverage[] {
       if (typeof stageData !== 'object') continue;
 
       const stageRecord = stageData as Record<string, unknown>;
+
       const durationMs = stageRecord.durationMs;
       if (durationMs !== null && durationMs !== undefined && typeof durationMs === 'number') {
         durations.push(durationMs);
+      }
+
+      const tokens = stageRecord.tokens;
+      if (tokens !== null && tokens !== undefined && typeof tokens === 'object') {
+        const t = tokens as Record<string, unknown>;
+        const total = (typeof t.input === 'number' ? t.input : 0) +
+                      (typeof t.output === 'number' ? t.output : 0);
+        if (total > 0) tokensList.push(total);
+      }
+
+      const feedback = stageRecord.feedback;
+      if (feedback !== null && feedback !== undefined && typeof feedback === 'object') {
+        const ratingRaw = (feedback as Record<string, unknown>).rating;
+        if (typeof ratingRaw === 'number') {
+          ratingsList.push(ratingRaw);
+        }
       }
     }
 
@@ -223,7 +244,15 @@ export function computeStageAverages(runs: InsightsRun[]): StageAverage[] {
       ? durations.reduce((sum, d) => sum + d, 0) / durations.length
       : null;
 
-    return { key: stageKey, avgDurationMs };
+    const avgTokens = tokensList.length > 0
+      ? Math.round(tokensList.reduce((sum, t) => sum + t, 0) / tokensList.length)
+      : null;
+
+    const avgFeedbackRating = ratingsList.length > 0
+      ? parseFloat((ratingsList.reduce((sum, r) => sum + r, 0) / ratingsList.length).toFixed(1))
+      : null;
+
+    return { key: stageKey, avgDurationMs, avgTokens, avgFeedbackRating };
   });
 }
 

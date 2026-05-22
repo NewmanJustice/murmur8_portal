@@ -7,6 +7,28 @@ import { formatDuration, formatCost } from '@/lib/dashboard';
 import type { AggregateInsights, StageAverage } from '@/lib/insights';
 
 // ---------------------------------------------------------------------------
+// Stage glyph prefix helper
+// Maps each stage key to its glyph-prefixed label:
+//   alex      → "} alex"
+//   cass      → "}} cass"
+//   nigel-*   → "}}} nigel-spec" / "}}} nigel-tests"
+//   codey-*   → "}}}} codey-plan" / "}}}} codey-implement"
+// ---------------------------------------------------------------------------
+
+const STAGE_GLYPH_LABELS: Record<string, string> = {
+  'alex':             '} alex',
+  'cass':             '}} cass',
+  'nigel-spec':       '}}} nigel-spec',
+  'nigel-tests':      '}}} nigel-tests',
+  'codey-plan':       '}}}} codey-plan',
+  'codey-implement':  '}}}} codey-implement',
+};
+
+function stageGlyphPrefix(key: string): string {
+  return STAGE_GLYPH_LABELS[key] ?? key;
+}
+
+// ---------------------------------------------------------------------------
 // Stage accent classes (mirrors run-detail stageAccentClass)
 // ---------------------------------------------------------------------------
 
@@ -125,43 +147,51 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
         <StatCard label="Most Active Repo" value={topRepoByRunCount ?? '—'} />
       </div>
 
-      {/* Stage breakdown + failure callout */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Stage breakdown table */}
-        <div className="lg:col-span-2 overflow-x-auto rounded-brand border border-starling-cyan/30 bg-white">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-starling-cyan/30 bg-starling-cloud/50">
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-starling-slate">
-                  Stage
-                </th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-starling-slate">
-                  Avg Duration
-                </th>
+      {/* Stage breakdown table */}
+      <div className="overflow-x-auto rounded-brand border border-starling-cyan/30 bg-white">
+        <table className="w-full border-collapse text-left">
+          <thead>
+            <tr className="border-b border-starling-cyan/30 bg-starling-cloud/50">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-starling-slate">
+                Stage
+              </th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-starling-slate">
+                Avg Duration
+              </th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-starling-slate">
+                Avg Total Tokens
+              </th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-starling-slate">
+                Avg Feedback Rating
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {stageAverages.map(({ key, avgDurationMs: stageDuration, avgTokens, avgFeedbackRating: stageAvgFeedback }) => (
+              <tr
+                key={key}
+                className="border-b border-starling-cyan/20 last:border-0 hover:bg-starling-cloud/30 transition"
+              >
+                <td className="px-4 py-2.5">
+                  <span
+                    className={`font-mono text-xs font-semibold ${stageAccentClass(key).split(' ')[0]}`}
+                  >
+                    {stageGlyphPrefix(key)}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-sm text-starling-ink">
+                  {stageDuration !== null ? formatDuration(stageDuration) : '—'}
+                </td>
+                <td className="px-4 py-2.5 text-sm text-starling-ink">
+                  {avgTokens !== null ? avgTokens.toLocaleString() : '—'}
+                </td>
+                <td className="px-4 py-2.5 text-sm text-starling-ink">
+                  {stageAvgFeedback !== null ? stageAvgFeedback : '—'}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {stageAverages.map(({ key, avgDurationMs: stageDuration }) => (
-                <tr
-                  key={key}
-                  className="border-b border-starling-cyan/20 last:border-0 hover:bg-starling-cloud/30 transition"
-                >
-                  <td className="px-4 py-2.5">
-                    <span
-                      className={`inline-block rounded border-l-2 pl-2 font-mono text-xs font-semibold ${stageAccentClass(key)}`}
-                    >
-                      {key}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-sm text-starling-ink">
-                    {stageDuration !== null ? formatDuration(stageDuration) : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
+            ))}
+          </tbody>
+        </table>
       </div>
     </section>
   );
