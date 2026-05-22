@@ -123,4 +123,20 @@ describe('Most Common Failure Stage tile — new stat card styles applied', () =
       'Expected label text "Most Common Failure Stage" to remain in the file'
     );
   });
+
+  it('T-MCFS-13: tile is inside the upper stat cards grid (sm:grid-cols-4)', () => {
+    const upperGridStart = insightsPanel.indexOf('sm:grid-cols-4');
+    const upperGridEnd = insightsPanel.indexOf('</div>', insightsPanel.indexOf('</div>', upperGridStart + 1));
+    const failureTileIdx = insightsPanel.indexOf('Most Common Failure Stage');
+    assert.ok(
+      failureTileIdx > upperGridStart,
+      'Expected Most Common Failure Stage tile to appear after the sm:grid-cols-4 grid opens'
+    );
+    // Ensure it's NOT in the lower lg:grid-cols-3 section
+    const lowerGridStart = insightsPanel.indexOf('lg:grid-cols-3');
+    assert.ok(
+      failureTileIdx < lowerGridStart || lowerGridStart === -1,
+      'Expected Most Common Failure Stage tile to NOT be in the lower lg:grid-cols-3 section'
+    );
+  });
 });

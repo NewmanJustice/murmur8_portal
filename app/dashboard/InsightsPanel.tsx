@@ -112,6 +112,16 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
             {avgFeedbackRating !== null ? `${avgFeedbackRating} / 5` : '—'}
           </p>
         </div>
+        {mostCommonFailureStage !== null && (
+          <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">
+              Most Common Failure Stage
+            </p>
+            <p className="mt-1 text-2xl font-extrabold text-starling-ink">
+              {mostCommonFailureStage}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Stage breakdown + failure callout */}
@@ -151,16 +161,6 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
           </table>
         </div>
 
-        {mostCommonFailureStage !== null && (
-          <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">
-              Most Common Failure Stage
-            </p>
-            <p className="mt-1 text-2xl font-extrabold text-starling-ink">
-              {mostCommonFailureStage}
-            </p>
-          </div>
-        )}
       </div>
     </section>
   );

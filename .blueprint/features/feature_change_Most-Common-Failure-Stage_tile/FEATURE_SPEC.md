@@ -22,7 +22,7 @@
 - No changes to conditional rendering logic (tile still only appears when `mostCommonFailureStage !== null`).
 - No changes to any other tiles or cards.
 - No addition of new metrics, fields, or UI elements.
-- No relocation of the tile within the DOM/grid (it remains in its current grid position within the lower `lg:grid-cols-3` section).
+- Tile is moved from the lower `lg:grid-cols-3` section into the upper stat cards grid (`grid-cols-2 sm:grid-cols-4`), matching the size and layout of the other cards in that row.
 
 ---
 
@@ -39,8 +39,8 @@ No new actor permissions or restrictions introduced.
 ## 4. Behaviour Overview
 
 - **Before:** When `mostCommonFailureStage` is not null, a red-bordered callout appears in the bottom-right of the insights section showing the stage name with warning-style text.
-- **After:** The same conditional tile appears with the standard stat card styling: white background, cyan/30 border, uppercase slate label ("Most Common Failure Stage"), bold ink-colored stage name value.
-- **No change to:** when the tile appears, what data it shows, or its position in the grid.
+- **After:** The tile is rendered inside the upper stat cards grid alongside the other metric cards, using the same styling and inheriting the same responsive sizing (`grid-cols-2 sm:grid-cols-4`).
+- **No change to:** when the tile appears or what data it shows.
 
 ---
 
