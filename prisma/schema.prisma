@@ -58,7 +58,7 @@ model Run {
   totalDurationMs Int?
   totalCost       Decimal?
   commitHash      String?
-  repoOwner       String?
+  gitHubUser       String?
   repoName        String?
   failedStage     String?
   pausedAfter     String?
