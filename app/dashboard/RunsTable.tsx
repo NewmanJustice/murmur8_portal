@@ -11,6 +11,8 @@ interface RunRow {
   completedAt: Date | null;
   totalDurationMs: number | null;
   totalCost: unknown;
+  repoName: string | null;
+  gitHubUser: string | null;
 }
 
 interface RunsTableProps {
@@ -31,6 +33,16 @@ export function RunsTable({ runs }: RunsTableProps) {
               className="block font-mono text-sm text-starling-ink group-hover:text-starling-blue"
             >
               {run.slug}
+            </Link>
+          </td>
+          <td className="px-4 py-3 text-sm text-starling-slate">
+            <Link href={`/runs/${run.id}`} className="block">
+              {run.repoName ?? "—"}
+            </Link>
+          </td>
+          <td className="px-4 py-3 text-sm text-starling-slate">
+            <Link href={`/runs/${run.id}`} className="block">
+              {run.gitHubUser ?? "—"}
             </Link>
           </td>
           <td className="px-4 py-3">

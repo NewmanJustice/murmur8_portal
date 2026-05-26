@@ -202,6 +202,12 @@ export default async function RunsPage({ searchParams }: RunsPageProps) {
                       Slug
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-starling-slate">
+                      Repo
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-starling-slate">
+                      User
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-starling-slate">
                       Status
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-starling-slate">

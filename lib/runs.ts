@@ -15,6 +15,8 @@ export interface RunRow {
   completedAt: Date | null;
   totalDurationMs: number | null;
   totalCost: number | null;
+  repoName: string | null;
+  gitHubUser: string | null;
 }
 
 export interface GetUserRunsResult {
@@ -123,6 +125,8 @@ export async function getUserRuns(
         completedAt: true,
         totalDurationMs: true,
         totalCost: true,
+        repoName: true,
+        gitHubUser: true,
       },
     }),
     prisma.run.count({ where }),
