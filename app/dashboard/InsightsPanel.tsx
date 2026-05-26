@@ -3,6 +3,7 @@
  * Renders aggregate insights: stat cards, stage breakdown, failure callout.
  */
 
+import Link from 'next/link';
 import { formatDuration, formatCost } from '@/lib/dashboard';
 import type { AggregateInsights, StageAverage } from '@/lib/insights';
 
@@ -57,15 +58,30 @@ interface StatCardProps {
   label: string;
   value: string;
   accent?: boolean;
+  href?: string;
 }
 
-function StatCard({ label, value, accent }: StatCardProps) {
-  return (
-    <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+function StatCard({ label, value, accent, href }: StatCardProps) {
+  const content = (
+    <>
       <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">{label}</p>
       <p className={`mt-1 text-2xl font-extrabold ${accent ? 'text-starling-blue' : 'text-starling-ink'}`}>
         {value}
       </p>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4 cursor-pointer transition hover:border-starling-sky hover:bg-starling-mist" aria-label={`${label} — view trend`}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+      {content}
     </div>
   );
 }
@@ -93,13 +109,13 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
 
       {/* Stat cards */}
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total Runs" value={String(totalRuns)} />
-        <StatCard label="Success Rate" value={successRateDisplay} accent />
-        <StatCard label="Avg Duration" value={avgDurationDisplay} />
-        <StatCard label="Total Cost" value={totalCostDisplay} />
-        <StatCard label="Avg Cost / Run" value={formatCost(avgCostPerRun)} />
-        <StatCard label="Refinement Rate" value={`${refinementRate}%`} />
-        <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+        <StatCard label="Total Runs" value={String(totalRuns)} href="/dashboard/insights/total-runs" />
+        <StatCard label="Success Rate" value={successRateDisplay} accent href="/dashboard/insights/success-rate" />
+        <StatCard label="Avg Duration" value={avgDurationDisplay} href="/dashboard/insights/avg-duration" />
+        <StatCard label="Total Cost" value={totalCostDisplay} href="/dashboard/insights/total-cost" />
+        <StatCard label="Avg Cost / Run" value={formatCost(avgCostPerRun)} href="/dashboard/insights/avg-cost-per-run" />
+        <StatCard label="Refinement Rate" value={`${refinementRate}%`} href="/dashboard/insights/refinement-rate" />
+        <Link href="/dashboard/insights/runs-by-type" className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4 cursor-pointer transition hover:border-starling-sky hover:bg-starling-mist" aria-label="Runs by Type — view trend">
           <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">Runs by Type</p>
           <p className="mt-1 text-sm text-starling-ink">
             <span className="font-semibold">Feature:</span> {featureRuns}
@@ -107,9 +123,9 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
           <p className="text-sm text-starling-ink">
             <span className="font-semibold">Refinement:</span> {refinementRuns}
           </p>
-        </div>
+        </Link>
         {Object.keys(stageSuccessRates).length > 0 && (
-          <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+          <Link href="/dashboard/insights/stage-success-rates" className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4 cursor-pointer transition hover:border-starling-sky hover:bg-starling-mist" aria-label="Stage Success Rates — view trend">
             <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">Stage Success Rates</p>
             {Object.entries(stageSuccessRates).map(([stageKey, rate]) => (
               <p key={stageKey} className="mt-1 text-sm text-starling-ink">
@@ -117,7 +133,7 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
                 {': '}{rate}%
               </p>
             ))}
-          </div>
+          </Link>
         )}
         <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">Run Velocity</p>
@@ -128,23 +144,23 @@ export function InsightsPanel({ insights, stageAverages, mostCommonFailureStage 
             <span className="font-semibold">Last 30 Days:</span> {last30Days}
           </p>
         </div>
-        <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+        <Link href="/dashboard/insights/avg-feedback-rating" className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4 cursor-pointer transition hover:border-starling-sky hover:bg-starling-mist" aria-label="Avg Feedback Rating — view trend">
           <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">Avg Feedback Rating</p>
           <p className="mt-1 text-2xl font-extrabold text-starling-ink">
             {avgFeedbackRating !== null ? `${avgFeedbackRating} / 5` : '—'}
           </p>
-        </div>
+        </Link>
         {mostCommonFailureStage !== null && (
-          <div className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4">
+          <Link href="/dashboard/insights/most-common-failure-stage" className="rounded-brand border border-starling-cyan/30 bg-white px-5 py-4 cursor-pointer transition hover:border-starling-sky hover:bg-starling-mist" aria-label="Most Common Failure Stage — view trend">
             <p className="text-xs font-semibold uppercase tracking-wide text-starling-slate">
               Most Common Failure Stage
             </p>
             <p className="mt-1 text-2xl font-extrabold text-starling-ink">
               {mostCommonFailureStage}
             </p>
-          </div>
+          </Link>
         )}
-        <StatCard label="Most Active Repo" value={topRepoByRunCount ?? '—'} />
+        <StatCard label="Most Active Repo" value={topRepoByRunCount ?? '—'} href="/dashboard/insights/most-active-repo" />
       </div>
 
       {/* Stage breakdown table */}
