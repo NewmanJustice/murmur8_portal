@@ -4,6 +4,30 @@ const prisma = new PrismaClient()
 
 const STAGE_KEYS = ['alex', 'cass', 'nigel-spec', 'nigel-tests', 'codey-plan', 'codey-implement']
 
+const REPOS = ['murmur8-portal', 'murmur8-cli', 'agent-workflow', 'murmur8-docs']
+const SLUGS = [
+  'project-scaffold',
+  'github-auth',
+  'api-key-management',
+  'telemetry-ingestion',
+  'run-history-dashboard',
+  'run-detail-view',
+  'insights-panel',
+  'admin-key-panel',
+  'clickable-insight-tiles',
+  'site-styling',
+  'copy-key',
+  'add-repo-fields',
+]
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+function randBetween(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min)) + min
+}
+
 function makeStages(includedKeys: string[], failAt?: string) {
   const stages: Record<string, unknown> = {}
   for (const key of includedKeys) {
@@ -11,22 +35,59 @@ function makeStages(includedKeys: string[], failAt?: string) {
     stages[key] = {
       startedAt: new Date(Date.now() - 600_000).toISOString(),
       completedAt: failed ? null : new Date().toISOString(),
-      durationMs: failed ? null : Math.floor(Math.random() * 60_000) + 5_000,
+      durationMs: failed ? null : randBetween(5_000, 65_000),
       status: failed ? 'failed' : 'success',
-      tokens: failed ? null : Math.floor(Math.random() * 20_000) + 2_000,
+      tokens: failed ? null : { input: randBetween(1_000, 15_000), output: randBetween(500, 8_000) },
       cost: failed ? null : +(Math.random() * 0.5).toFixed(4),
-      feedback: failed ? null : { rating: Math.floor(Math.random() * 2) + 4, issues: [] },
+      feedback: failed ? null : { rating: randBetween(3, 6), issues: [] },
     }
     if (key === 'codey-implement' && !failed) {
-      (stages[key] as Record<string, unknown>).stepsCompleted = Math.floor(Math.random() * 4) + 2
+      (stages[key] as Record<string, unknown>).stepsCompleted = randBetween(2, 7)
     }
     if (failed) break
   }
   return stages
 }
 
+function generateRun(baseDate: Date, userId: string, apiKeyId: string) {
+  const isFailed = Math.random() < 0.15
+  const isPaused = !isFailed && Math.random() < 0.08
+  const isRefinement = Math.random() < 0.25
+  const status = isFailed ? 'failed' : isPaused ? 'paused' : 'success'
+
+  const failedStage = isFailed ? pick(['nigel-tests', 'codey-implement', 'alex', 'cass']) : undefined
+  const pausedAfter = isPaused ? pick(['alex', 'codey-plan', 'nigel-tests']) : undefined
+
+  const stageCount = isFailed
+    ? STAGE_KEYS.indexOf(failedStage!) + 1
+    : isPaused
+      ? STAGE_KEYS.indexOf(pausedAfter!) + 1
+      : STAGE_KEYS.length
+
+  const stagesToUse = STAGE_KEYS.slice(0, stageCount)
+  const durationMs = status === 'paused' ? null : randBetween(300_000, 1_200_000)
+  const cost = +(Math.random() * 1.5 + 0.2).toFixed(4)
+
+  return {
+    userId,
+    apiKeyId,
+    slug: pick(SLUGS),
+    type: isRefinement ? 'refinement' : 'feature',
+    status,
+    startedAt: baseDate,
+    completedAt: status === 'paused' ? null : new Date(baseDate.getTime() + (durationMs ?? 600_000)),
+    totalDurationMs: durationMs,
+    totalCost: String(cost),
+    commitHash: status === 'success' ? Math.random().toString(36).slice(2, 14) : null,
+    failedStage: failedStage ?? null,
+    pausedAfter: pausedAfter ?? null,
+    stages: makeStages(stagesToUse, failedStage),
+    repoName: pick(REPOS),
+    gitHubUser: 'NewmanJustice',
+  }
+}
+
 async function main() {
-  // Seed user
   const user = await prisma.user.upsert({
     where: { githubId: 'seed-user-1' },
     update: {},
@@ -39,7 +100,6 @@ async function main() {
     },
   })
 
-  // Seed API key
   const apiKey = await prisma.apiKey.upsert({
     where: { key: 'mm8_seed_key_0000000000000000000000000000' },
     update: {},
@@ -52,98 +112,73 @@ async function main() {
     },
   })
 
-  // Delete existing seed runs to avoid duplication on re-seed
   await prisma.run.deleteMany({ where: { apiKeyId: apiKey.id } })
 
-  const slugs = [
-    'project-scaffold',
-    'github-auth',
-    'api-key-management',
-    'telemetry-ingestion',
-    'run-history-dashboard',
-    'run-detail-view',
-    'insights-panel',
-    'admin-key-panel',
-  ]
+  const now = Date.now()
+  const DAY = 86_400_000
+  const runs: ReturnType<typeof generateRun>[] = []
 
-  const runs: Parameters<typeof prisma.run.create>[0]['data'][] = [
-    // 6 successful feature runs
-    ...slugs.slice(0, 6).map((slug, i) => ({
-      userId: user.id,
-      apiKeyId: apiKey.id,
-      slug,
-      type: 'feature',
-      status: 'success',
-      startedAt: new Date(Date.now() - (8 - i) * 86_400_000),
-      completedAt: new Date(Date.now() - (8 - i) * 86_400_000 + 900_000),
-      totalDurationMs: 900_000 + i * 30_000,
-      totalCost: ((0.8 + i * 0.12).toFixed(4)),
-      commitHash: `abc${i}def${i}ghi${i}jkl${i}`.slice(0, 12),
-      stages: makeStages(STAGE_KEYS),
-    })),
-    // 1 failed run (nigel-tests failed)
-    {
-      userId: user.id,
-      apiKeyId: apiKey.id,
-      slug: 'insights-panel',
-      type: 'feature',
-      status: 'failed',
-      startedAt: new Date(Date.now() - 2 * 86_400_000),
-      completedAt: new Date(Date.now() - 2 * 86_400_000 + 420_000),
-      totalDurationMs: 420_000,
-      totalCost: ('0.34'),
-      commitHash: null,
-      failedStage: 'nigel-tests',
-      stages: makeStages(['alex', 'cass', 'nigel-spec', 'nigel-tests'], 'nigel-tests'),
-    },
-    // 1 paused run (paused after codey-plan)
-    {
-      userId: user.id,
-      apiKeyId: apiKey.id,
-      slug: 'admin-key-panel',
-      type: 'feature',
-      status: 'paused',
-      startedAt: new Date(Date.now() - 1 * 86_400_000),
-      completedAt: null,
-      totalDurationMs: null,
-      totalCost: ('0.55'),
-      commitHash: null,
-      pausedAfter: 'codey-plan',
-      stages: makeStages(['alex', 'cass', 'nigel-spec', 'nigel-tests', 'codey-plan']),
-    },
-    // 1 refinement run linked to the run-detail-view success run
-    {
-      userId: user.id,
-      apiKeyId: apiKey.id,
-      slug: 'run-detail-view',
-      type: 'refinement',
-      status: 'success',
-      startedAt: new Date(Date.now() - 12 * 3_600_000),
-      completedAt: new Date(Date.now() - 12 * 3_600_000 + 600_000),
-      totalDurationMs: 600_000,
-      totalCost: ('0.42'),
-      commitHash: 'ref1abc2def3',
-      stages: makeStages(STAGE_KEYS),
-    },
-  ]
+  // --- Current week: 2-3 runs per day for last 7 days ---
+  for (let d = 0; d < 7; d++) {
+    const runsPerDay = randBetween(2, 4)
+    for (let r = 0; r < runsPerDay; r++) {
+      const date = new Date(now - d * DAY - randBetween(0, DAY))
+      runs.push(generateRun(date, user.id, apiKey.id))
+    }
+  }
+
+  // --- Past month (days 8-30): 1-2 runs per day ---
+  for (let d = 8; d <= 30; d++) {
+    const runsPerDay = randBetween(1, 3)
+    for (let r = 0; r < runsPerDay; r++) {
+      const date = new Date(now - d * DAY - randBetween(0, DAY))
+      runs.push(generateRun(date, user.id, apiKey.id))
+    }
+  }
+
+  // --- Past 2-12 months: 5-10 runs per month ---
+  for (let m = 2; m <= 12; m++) {
+    const runsThisMonth = randBetween(5, 11)
+    for (let r = 0; r < runsThisMonth; r++) {
+      const daysAgo = m * 30 + randBetween(0, 28)
+      const date = new Date(now - daysAgo * DAY - randBetween(0, DAY))
+      runs.push(generateRun(date, user.id, apiKey.id))
+    }
+  }
+
+  // --- Previous year (13-24 months ago): 3-8 runs per month ---
+  for (let m = 13; m <= 24; m++) {
+    const runsThisMonth = randBetween(3, 9)
+    for (let r = 0; r < runsThisMonth; r++) {
+      const daysAgo = m * 30 + randBetween(0, 28)
+      const date = new Date(now - daysAgo * DAY - randBetween(0, DAY))
+      runs.push(generateRun(date, user.id, apiKey.id))
+    }
+  }
 
   for (const data of runs) {
     await prisma.run.create({ data })
   }
 
-  // Link the refinement run to the first run-detail-view success run
-  const [parentRun, refinementRun] = await Promise.all([
-    prisma.run.findFirst({ where: { slug: 'run-detail-view', type: 'feature', userId: user.id } }),
-    prisma.run.findFirst({ where: { slug: 'run-detail-view', type: 'refinement', userId: user.id } }),
-  ])
-  if (parentRun && refinementRun) {
+  // Link some refinement runs to parent feature runs
+  const featureRuns = await prisma.run.findMany({
+    where: { userId: user.id, type: 'feature', status: 'success' },
+    take: 5,
+    orderBy: { startedAt: 'desc' },
+  })
+  const refinementRuns = await prisma.run.findMany({
+    where: { userId: user.id, type: 'refinement', parentRunId: null },
+    take: 5,
+    orderBy: { startedAt: 'desc' },
+  })
+  for (let i = 0; i < Math.min(featureRuns.length, refinementRuns.length); i++) {
     await prisma.run.update({
-      where: { id: refinementRun.id },
-      data: { parentRunId: parentRun.id },
+      where: { id: refinementRuns[i].id },
+      data: { parentRunId: featureRuns[i].id },
     })
   }
 
-  console.log(`Seeded: 1 user, 1 API key, ${runs.length} runs`)
+  console.log(`Seeded: 1 user, 1 API key, ${runs.length} runs (spanning ~2 years)`)
 }
 
 main()
