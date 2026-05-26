@@ -11,6 +11,8 @@ interface SearchParams {
   page?: string;
   status?: string;
   slug?: string;
+  repo?: string;
+  user?: string;
   dateFrom?: string;
   dateTo?: string;
 }
@@ -44,7 +46,7 @@ export default async function RunsPage({ searchParams }: RunsPageProps) {
 
   const { runs, total, totalPages } = await getUserRuns(userId, filters, pagination);
 
-  const hasFilters = !!(params.status || params.slug || params.dateFrom || params.dateTo);
+  const hasFilters = !!(params.status || params.slug || params.repo || params.user || params.dateFrom || params.dateTo);
   const isEmpty = runs.length === 0;
   const isNewUser = isEmpty && !hasFilters && total === 0;
 
@@ -116,6 +118,36 @@ export default async function RunsPage({ searchParams }: RunsPageProps) {
               name="slug"
               defaultValue={params.slug ?? ""}
               placeholder="Search slugs…"
+              className="rounded border border-starling-cyan/40 bg-starling-cloud px-3 py-1.5 text-sm text-starling-ink placeholder:text-starling-silver focus:outline-none focus:ring-2 focus:ring-starling-sky"
+            />
+          </div>
+
+          {/* Repo search */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="repo" className="text-xs font-medium text-starling-slate">
+              Repo
+            </label>
+            <input
+              id="repo"
+              type="text"
+              name="repo"
+              defaultValue={params.repo ?? ""}
+              placeholder="Search repos…"
+              className="rounded border border-starling-cyan/40 bg-starling-cloud px-3 py-1.5 text-sm text-starling-ink placeholder:text-starling-silver focus:outline-none focus:ring-2 focus:ring-starling-sky"
+            />
+          </div>
+
+          {/* User search */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="user" className="text-xs font-medium text-starling-slate">
+              User
+            </label>
+            <input
+              id="user"
+              type="text"
+              name="user"
+              defaultValue={params.user ?? ""}
+              placeholder="Search users…"
               className="rounded border border-starling-cyan/40 bg-starling-cloud px-3 py-1.5 text-sm text-starling-ink placeholder:text-starling-silver focus:outline-none focus:ring-2 focus:ring-starling-sky"
             />
           </div>
@@ -240,6 +272,8 @@ export default async function RunsPage({ searchParams }: RunsPageProps) {
                       href={`/dashboard/runs?${new URLSearchParams({
                         ...(params.status ? { status: params.status } : {}),
                         ...(params.slug ? { slug: params.slug } : {}),
+                        ...(params.repo ? { repo: params.repo } : {}),
+                        ...(params.user ? { user: params.user } : {}),
                         ...(params.dateFrom ? { dateFrom: params.dateFrom } : {}),
                         ...(params.dateTo ? { dateTo: params.dateTo } : {}),
                         page: String(pagination.page - 1),
@@ -254,6 +288,8 @@ export default async function RunsPage({ searchParams }: RunsPageProps) {
                       href={`/dashboard/runs?${new URLSearchParams({
                         ...(params.status ? { status: params.status } : {}),
                         ...(params.slug ? { slug: params.slug } : {}),
+                        ...(params.repo ? { repo: params.repo } : {}),
+                        ...(params.user ? { user: params.user } : {}),
                         ...(params.dateFrom ? { dateFrom: params.dateFrom } : {}),
                         ...(params.dateTo ? { dateTo: params.dateTo } : {}),
                         page: String(pagination.page + 1),

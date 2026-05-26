@@ -98,6 +98,14 @@ export async function getUserRuns(
     where.slug = { contains: filters.slug, mode: 'insensitive' };
   }
 
+  if (filters.repo) {
+    where.repoName = { contains: filters.repo, mode: 'insensitive' };
+  }
+
+  if (filters.user) {
+    where.gitHubUser = { contains: filters.user, mode: 'insensitive' };
+  }
+
   if (filters.dateFrom || filters.dateTo) {
     where.completedAt = {};
     if (filters.dateFrom) {

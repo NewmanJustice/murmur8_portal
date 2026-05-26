@@ -37,6 +37,8 @@ export function getPaginationParams(
 export interface FilterParams {
   status?: string;
   slug?: string;
+  repo?: string;
+  user?: string;
   dateFrom?: string;
   dateTo?: string;
 }
@@ -59,6 +61,16 @@ export function getFilterParams(
   const slug = searchParams.slug?.trim();
   if (slug && slug.length > 0) {
     result.slug = slug;
+  }
+
+  const repo = searchParams.repo?.trim();
+  if (repo && repo.length > 0) {
+    result.repo = repo;
+  }
+
+  const user = searchParams.user?.trim();
+  if (user && user.length > 0) {
+    result.user = user;
   }
 
   const dateFrom = searchParams.dateFrom;
