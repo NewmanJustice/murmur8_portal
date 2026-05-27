@@ -75,3 +75,36 @@ AC-SIGNIN-5 ("no duplicate User record is created") remains correct in behaviour
 | story-signin.md | NO | Behaviour ACs remain correct; Technical Note is silent on creation detail |
 | story-route-protection.md | NO | Not related to User creation or field names |
 | story-signout.md | NO | Not related to User creation or field names |
+
+---
+
+## Bug 3 — emailVerified missing from User model (AdapterError in production)
+
+**Root cause**: `@auth/prisma-adapter` requires five specific fields on the Prisma `User` model: `id`, `name`, `email`, `emailVerified`, `image`. The `emailVerified DateTime?` field was absent from the schema. The adapter attempted to write it on sign-in and threw an `AdapterError`. Tests only asserted that `image` was present; no test covered the full adapter field contract.
+
+**Fix**: Add `emailVerified DateTime?` to the Prisma `User` model. Add spec rule R-AUTH-7 documenting the full adapter field contract as a testable constraint.
+
+**Nature of change**: Technical constraint addition — this is a schema/implementation concern, not a user-facing behaviour change.
+
+### Affected stories
+
+| Story | File | Impact |
+|-------|------|--------|
+| GitHub OAuth Sign-In Flow | story-signin.md | No user-visible behaviour change — not affected |
+| Admin Elevation via ADMIN_GITHUB_ID | story-admin-elevation.md | No field contract reference — not affected |
+| Unauthenticated Route Protection | story-route-protection.md | Not affected |
+| Sign-Out and Session Clearing | story-signout.md | Not affected |
+
+**Verdict**: No existing story files require edits. The fix is a schema change (`prisma/schema.prisma`) plus a new spec rule (R-AUTH-7 in FEATURE_SPEC.md). Nigel must add a test that asserts all five adapter-required fields are present on the `User` model with correct types — this test gap was the root cause of the production failure.
+
+### Test gap to close (for Nigel)
+
+The following assertion must be added to the test suite (can be a schema-parse test against `prisma/schema.prisma`):
+
+- `User` model contains field `id` (String, @id)
+- `User` model contains field `name` (String?)
+- `User` model contains field `email` (String, @unique)
+- `User` model contains field `emailVerified` (DateTime?)
+- `User` model contains field `image` (String?)
+
+This assertion is the canonical adapter contract (R-AUTH-7) and must fail if any of these fields are removed or their nullability changed to non-nullable.

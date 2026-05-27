@@ -78,3 +78,34 @@ Failing tests and their cause:
 | T-GA-NEW-5 (×2) | Bug unfixed: `auth.ts` updateMany still passes `avatarUrl` instead of `image` |
 
 T-GA-NEW-3 and T-GA-NEW-5 will pass once Codey applies the schema and auth.ts fixes.
+
+---
+
+## Refinement 2026-05-27 — NextAuth adapter contract: all five User model fields
+
+### Why
+
+The previous test pass (T-GA-NEW-3) only asserted the presence of `image` in the User model. This was insufficient — when `emailVerified DateTime?` was missing from the schema the tests still passed, because no test verified its presence. The gap was only discovered at runtime when `@auth/prisma-adapter` failed to find the required field.
+
+### New describe block added
+
+`"NextAuth adapter contract — User model fields"` (added after T-GA-NEW-2, before T-GA-NEW-5)
+
+| ID | Assertion |
+|----|-----------|
+| T-GA-NEW-6 | `id  String  @id` present in User model |
+| T-GA-NEW-7 | `name  String?` present in User model |
+| T-GA-NEW-8 | `email  String?  @unique` present in User model |
+| T-GA-NEW-9 | `emailVerified  DateTime?` present in User model |
+| T-GA-NEW-10 | `image  String?` present in User model (stricter regex than T-GA-NEW-3) |
+
+T-GA-NEW-10 complements T-GA-NEW-3 (which is retained unchanged) with a tighter word-boundary regex.
+
+### Test run status after this refinement
+
+| Status | Count |
+|--------|-------|
+| Pass | 36 |
+| Fail | 1 (pre-existing: T-07 "imports from ./auth") |
+
+All five new tests T-GA-NEW-6 through T-GA-NEW-10 pass against the current schema (which now contains `emailVerified DateTime?`).

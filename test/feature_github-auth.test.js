@@ -446,6 +446,65 @@ describe('T-GA-NEW-4: auth.ts — uses updateMany for user backfill', () => {
 });
 
 // ---------------------------------------------------------------------------
+// T-GA-NEW-6 through T-GA-NEW-10: NextAuth adapter contract — User model fields
+// The @auth/prisma-adapter requires exactly these five fields on the User model.
+// Tests assert all five are present in prisma/schema.prisma.
+// ---------------------------------------------------------------------------
+describe('NextAuth adapter contract — User model fields', () => {
+  function getUserModel() {
+    const content = readFile('prisma/schema.prisma');
+    const match = content.match(/model User \{[\s\S]*?\}/);
+    assert.ok(match, 'Expected a User model in prisma/schema.prisma');
+    return match[0];
+  }
+
+  // T-GA-NEW-6
+  it('T-GA-NEW-6: User model contains `id` field (String @id)', () => {
+    const userModel = getUserModel();
+    assert.ok(
+      /\bid\s+String\s+@id/.test(userModel),
+      'Expected User model to have: id  String  @id'
+    );
+  });
+
+  // T-GA-NEW-7
+  it('T-GA-NEW-7: User model contains `name` field (String?)', () => {
+    const userModel = getUserModel();
+    assert.ok(
+      /\bname\s+String\?/.test(userModel),
+      'Expected User model to have: name  String?'
+    );
+  });
+
+  // T-GA-NEW-8
+  it('T-GA-NEW-8: User model contains `email` field (String? @unique)', () => {
+    const userModel = getUserModel();
+    assert.ok(
+      /\bemail\s+String\?\s+@unique/.test(userModel),
+      'Expected User model to have: email  String?  @unique'
+    );
+  });
+
+  // T-GA-NEW-9
+  it('T-GA-NEW-9: User model contains `emailVerified` field (DateTime?)', () => {
+    const userModel = getUserModel();
+    assert.ok(
+      /\bemailVerified\s+DateTime\?/.test(userModel),
+      'Expected User model to have: emailVerified  DateTime?'
+    );
+  });
+
+  // T-GA-NEW-10
+  it('T-GA-NEW-10: User model contains `image` field (String?)', () => {
+    const userModel = getUserModel();
+    assert.ok(
+      /\bimage\s+String\?/.test(userModel),
+      'Expected User model to have: image  String?'
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // T-GA-NEW-5: auth.ts — backfill uses `image` field (not `avatarUrl`)
 // ---------------------------------------------------------------------------
 describe('T-GA-NEW-5: auth.ts — backfill data uses `image` field', () => {

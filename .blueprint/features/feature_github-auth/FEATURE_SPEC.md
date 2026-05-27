@@ -166,6 +166,13 @@ The `User` record is permanent once created. The `signIn` callback's `updateMany
 - **Rule**: The session exposes only the authenticated user's own `User.id` (and optionally `name`, `image`, `isAdmin`). No other user's data is included.
 - **Deterministic**: Yes — enforced by NextAuth session callback scope.
 
+### R-AUTH-7: Prisma User model must satisfy the @auth/prisma-adapter field contract
+- **Rule**: The Prisma `User` model MUST contain all fields required by `@auth/prisma-adapter`: `id`, `name`, `email`, `emailVerified`, `image`. Omitting any of these fields causes an `AdapterError` at runtime.
+- **Constraint (testable)**: A test MUST assert that the Prisma `User` model schema contains all five fields — `id`, `name`, `email`, `emailVerified`, `image` — with the correct types (`String` / nullable `String` / nullable `DateTime`). This is the canonical adapter contract; any schema migration that removes or renames these fields is a breaking change.
+- **Inputs**: `prisma/schema.prisma` `User` model definition.
+- **Output**: Adapter can create `User` records without error.
+- **Deterministic**: Yes.
+
 ---
 
 ## 7. Dependencies
@@ -286,3 +293,4 @@ This feature **reinforces** existing System Spec assumptions:
 | 2026-05-20 | Added R-AUTH-4 (org restriction), updated env var table, security section | GITHUB_ORG_CHECK / GITHUB_ORG env vars added | Steve |
 | 2026-05-27 | Renamed `avatarUrl` → `image` throughout spec (Bug 1: PrismaAdapter writes `image`, not `avatarUrl`) | AdapterError: Unknown argument `image` in production | Alex |
 | 2026-05-27 | Revised User creation model: adapter owns creation, signIn callback backfills via `updateMany` (Bug 2: OAuthAccountNotLinked race condition) | Race between manual `prisma.user.create()` in signIn callback and adapter's own create caused OAuthAccountNotLinked | Alex |
+| 2026-05-27 | Added R-AUTH-7: @auth/prisma-adapter field contract — User model must include id, name, email, emailVerified, image | Production AdapterError: emailVerified missing from User model; tests only checked image, not the full adapter contract | Steve |
