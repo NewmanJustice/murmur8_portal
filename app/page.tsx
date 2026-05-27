@@ -25,7 +25,7 @@ export default async function Home() {
           </div>
 
           <h1 className="text-3xl font-extrabold tracking-tight text-starling-ink">
-            Welcome back
+            Murmur8 Portal
           </h1>
 
           <p className="mt-3 text-starling-slate">

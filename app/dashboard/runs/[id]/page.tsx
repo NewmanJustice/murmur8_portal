@@ -1,6 +1,7 @@
-import { getSession } from '@/auth';
+import { getSession, signOut } from '@/auth';
 import { redirect, notFound } from 'next/navigation';
 import Image from 'next/image';
+import { MarkdownContent } from './MarkdownContent';
 import { getRunDetail } from '@/lib/runs';
 import {
   formatDuration,
@@ -10,7 +11,12 @@ import {
   stageAccentClass,
   formatNullable,
   showRefinementLink,
+  BACK_LINK,
+  SITE_NAV_LINKS,
+  computeTotalTokens,
+  computeStageCount,
 } from '@/lib/run-detail';
+import { MetricTile } from '@/app/dashboard/MetricTile';
 
 interface RunDetailPageProps {
   params: Promise<{ id: string }>;
@@ -25,6 +31,8 @@ export default async function RunDetailPage({ params }: RunDetailPageProps) {
 
   const user = session.user as typeof session.user & {
     id?: string;
+    avatarUrl?: string | null;
+    image?: string | null;
   };
 
   const userId = user.id;
@@ -55,24 +63,85 @@ export default async function RunDetailPage({ params }: RunDetailPageProps) {
       {/* Header */}
       <header className="border-b border-starling-cyan/30 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Image
-            src="/murmur8-logo-compact.svg"
-            alt="murmur8"
-            width={120}
-            height={30}
-            priority
-          />
+          <div className="flex items-center gap-3">
+            <Image
+              src="/murmur8-logo-compact.svg"
+              alt="murmur8"
+              width={120}
+              height={30}
+              priority
+            />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <nav className="flex items-center gap-2">
+              {SITE_NAV_LINKS.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="rounded-brand border border-starling-cyan/50 px-3 py-1.5 text-sm font-medium text-starling-ink transition hover:border-starling-sky hover:bg-starling-mist"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+
+            {(user.image || user.avatarUrl) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.avatarUrl ?? user.image ?? ""}
+                alt={user.name ?? "User avatar"}
+                className="h-8 w-8 rounded-full border border-starling-cyan/50"
+              />
+            ) : null}
+
+            <span className="text-sm text-starling-slate">{user.name}</span>
+
+            <form
+              action={async () => {
+                "use server";
+                await signOut({ redirectTo: "/" });
+              }}
+            >
+              <button
+                type="submit"
+                className="rounded-brand border border-starling-cyan bg-white px-4 py-2 text-sm font-semibold text-starling-ink transition hover:border-starling-sky hover:bg-starling-mist"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-10">
         {/* Back link */}
         <a
-          href="/dashboard/runs"
+          href={BACK_LINK.href}
           className="mb-6 inline-flex items-center gap-1 text-sm text-starling-slate transition hover:text-starling-ink"
         >
-          ← Back to runs
+          {BACK_LINK.label}
         </a>
+
+        {/* Telemetry metric tiles */}
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <MetricTile
+            label="Total Cost"
+            value={run.totalCost !== null && run.totalCost !== undefined ? formatCost(Number(run.totalCost)) : '—'}
+          />
+          <MetricTile
+            label="Total Duration"
+            value={run.totalDurationMs !== null ? formatDuration(run.totalDurationMs) : '—'}
+          />
+          <MetricTile
+            label="Total Tokens"
+            value={computeTotalTokens(run.stages) > 0 ? computeTotalTokens(run.stages).toLocaleString() : '—'}
+          />
+          <MetricTile
+            label="Stage Count"
+            value={String(computeStageCount(run.stages))}
+          />
+        </div>
 
         {/* Run header card */}
         <div className="mb-8 rounded-brand border border-starling-cyan/30 bg-white p-6">
@@ -187,11 +256,17 @@ export default async function RunDetailPage({ params }: RunDetailPageProps) {
                           Tokens
                         </dt>
                         <dd className="mt-0.5 font-mono text-starling-ink">
-                          {formatNullable(
-                            stageData?.tokens !== undefined
-                              ? (stageData.tokens as string | number | null)
-                              : null
-                          )}
+                          {(() => {
+                            const t = stageData?.tokens;
+                            if (t === null || t === undefined) return '—';
+                            if (typeof t === 'object' && !Array.isArray(t)) {
+                              const o = t as Record<string, unknown>;
+                              const total = (typeof o.input === 'number' ? o.input : 0) +
+                                            (typeof o.output === 'number' ? o.output : 0);
+                              return total.toLocaleString();
+                            }
+                            return formatNullable(t as string | number | null);
+                          })()}
                         </dd>
                       </div>
                       <div>
@@ -223,6 +298,37 @@ export default async function RunDetailPage({ params }: RunDetailPageProps) {
             </div>
           </section>
         )}
+
+        {/* Feature Spec */}
+        <section className="mt-8">
+          <h2 className="mb-4 text-lg font-bold text-starling-ink">Feature Spec</h2>
+          {run.featureSpec ? (
+            <div className="rounded-brand border border-starling-cyan/30 bg-white p-6 text-sm text-starling-ink">
+              <MarkdownContent content={run.featureSpec} />
+            </div>
+          ) : (
+            <p className="text-sm text-starling-slate">Not available for this run.</p>
+          )}
+        </section>
+
+        {/* Stories */}
+        <section className="mt-8">
+          <h2 className="mb-4 text-lg font-bold text-starling-ink">Stories</h2>
+          {Array.isArray(run.stories) && (run.stories as Array<{title:string;content:string}>).length > 0 ? (
+            <div className="space-y-4">
+              {(run.stories as Array<{title:string;content:string}>).map((story, i) => (
+                <div key={i} className="rounded-brand border border-starling-cyan/30 bg-white p-6">
+                  <h3 className="mb-2 font-mono text-sm font-bold text-starling-ink">{story.title}</h3>
+                  <div className="text-sm text-starling-slate">
+                    <MarkdownContent content={story.content} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-starling-slate">Not available for this run.</p>
+          )}
+        </section>
       </div>
     </main>
   );

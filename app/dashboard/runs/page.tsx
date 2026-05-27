@@ -5,9 +5,11 @@ import { getPaginationParams, getFilterParams } from "@/lib/dashboard";
 import { getUserRuns } from "@/lib/runs";
 import { RunsTable } from "@/app/dashboard/RunsTable";
 
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Run History — murmur8 portal' };
 
 interface SearchParams {
+  [key: string]: string | undefined;
   page?: string;
   status?: string;
   slug?: string;

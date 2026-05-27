@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { hashKey, validatePayload, buildRunData } from '@/lib/telemetry';
 
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let runId: string;
   try {
     const [run] = await prisma.$transaction([
-      prisma.run.create({ data: runData, select: { id: true } }),
+      prisma.run.create({ data: { ...runData, stages: runData.stages as Prisma.InputJsonValue, stories: runData.stories as Prisma.InputJsonValue ?? null }, select: { id: true } }),
       prisma.apiKey.update({
         where: { id: apiKey.id },
         data: { lastUsedAt: new Date() },

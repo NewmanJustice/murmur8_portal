@@ -29,34 +29,34 @@ export function RunsTable({ runs }: RunsTableProps) {
         >
           <td className="px-4 py-3">
             <Link
-              href={`/runs/${run.id}`}
+              href={`/dashboard/runs/${run.id}`}
               className="block font-mono text-sm text-starling-ink group-hover:text-starling-blue"
             >
               {run.slug}
             </Link>
           </td>
           <td className="px-4 py-3 text-sm text-starling-slate">
-            <Link href={`/runs/${run.id}`} className="block">
+            <Link href={`/dashboard/runs/${run.id}`} className="block">
               {run.repoName ?? "—"}
             </Link>
           </td>
           <td className="px-4 py-3 text-sm text-starling-slate">
-            <Link href={`/runs/${run.id}`} className="block">
+            <Link href={`/dashboard/runs/${run.id}`} className="block">
               {run.gitHubUser ?? "—"}
             </Link>
           </td>
           <td className="px-4 py-3">
-            <Link href={`/runs/${run.id}`} className="block">
+            <Link href={`/dashboard/runs/${run.id}`} className="block">
               <span className={statusBadgeClass(run.status)}>{run.status}</span>
             </Link>
           </td>
           <td className="px-4 py-3">
-            <Link href={`/runs/${run.id}`} className="block">
+            <Link href={`/dashboard/runs/${run.id}`} className="block">
               <span className={typeBadgeClass(run.type)}>{run.type}</span>
             </Link>
           </td>
           <td className="px-4 py-3 text-sm text-starling-slate">
-            <Link href={`/runs/${run.id}`} className="block">
+            <Link href={`/dashboard/runs/${run.id}`} className="block">
               {run.completedAt
                 ? new Date(run.completedAt).toLocaleDateString("en-GB", {
                     day: "2-digit",
@@ -70,12 +70,12 @@ export function RunsTable({ runs }: RunsTableProps) {
             </Link>
           </td>
           <td className="px-4 py-3 text-sm text-starling-slate tabular-nums">
-            <Link href={`/runs/${run.id}`} className="block">
+            <Link href={`/dashboard/runs/${run.id}`} className="block">
               {run.totalDurationMs != null ? formatDuration(run.totalDurationMs) : "—"}
             </Link>
           </td>
           <td className="px-4 py-3 text-sm text-starling-slate tabular-nums">
-            <Link href={`/runs/${run.id}`} className="block">
+            <Link href={`/dashboard/runs/${run.id}`} className="block">
               {run.totalCost != null ? formatCost(Number(run.totalCost)) : "—"}
             </Link>
           </td>

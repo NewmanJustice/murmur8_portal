@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Prisma } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -157,7 +157,7 @@ async function main() {
   }
 
   for (const data of runs) {
-    await prisma.run.create({ data })
+    await prisma.run.create({ data: { ...data, stages: data.stages as Prisma.InputJsonValue } })
   }
 
   // Link some refinement runs to parent feature runs

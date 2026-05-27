@@ -65,6 +65,8 @@ model Run {
   pausedAfter     String?
   parentRunId     String?
   stages          Json
+  featureSpec     String?
+  stories         Json?
   receivedAt      DateTime  @default(now())
 
   // Relations

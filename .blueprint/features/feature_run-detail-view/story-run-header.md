@@ -1,3 +1,5 @@
+Refined: 2026-05-27 — back-link label updated to match nav convention
+
 # Story: View Run Header
 
 **As an** authenticated user,
@@ -21,7 +23,7 @@ Then the status badge is green; a `failed` run badge is red; a `paused` run badg
 **AC3 — Back link is present**
 Given I am on the run detail page,
 When the page loads,
-Then a back link labelled "← Back to runs" (or equivalent) navigates me to `/dashboard/runs`.
+Then a back link labelled "← Run History" navigates me to `/dashboard/runs`.
 
 **AC4 — Nullable header fields degrade gracefully**
 Given a run where `commitHash`, `failedStage`, or `pausedAfter` is `null`,

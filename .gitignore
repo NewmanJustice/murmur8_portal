@@ -40,4 +40,5 @@ next-env.d.ts
 .claude/pipeline-history.json
 .claude/stack-config.json
 
-claudeinit.shpublishProfile.xml
+claudeinit.sh
+publishProfile.xml

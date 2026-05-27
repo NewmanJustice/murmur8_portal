@@ -2,7 +2,7 @@
 
 ---
 version: 0.1.0
-date: 2026-05-20
+date: 2026-05-27
 status: draft
 ---
 
@@ -30,7 +30,13 @@ status: draft
 - Status badges consistent with run-history-dashboard: `success`=green, `failed`=red, `paused`=yellow
 - Agent accent colour applied to each stage card (Alex=sky `#38BDF8`, Cass=violet `#A78BFA`, Nigel=amber `#F59E0B`, Codey=teal `#2DD4BF`)
 - 404 response if run does not exist or belongs to a different user (R1 enforcement)
-- Navigation: back link to `/dashboard/runs` (run-history-dashboard)
+- Navigation: back link labelled "← Run History" to `/dashboard/runs` (run-history-dashboard)
+- Consistent site nav header: murmur8 logo (left), nav links "Run History" → `/dashboard/runs` and "Keys" → `/(dashboard)/keys` (centre/right), user avatar and sign-out button (right) — matching `app/dashboard/page.tsx`
+- Telemetry summary tiles: four metric tiles (Total Cost, Total Duration, Total Tokens derived from stages JSONB at render time, Stage Count) reusing InsightsPanel tile visual pattern
+- Feature spec display: render `run.featureSpec` as Markdown if non-null; "Not available for this run" if null
+- Stories display: render `run.stories` (JSON array of `{title, content}`) if non-null; "Not available for this run" if null
+- Schema: add `featureSpec` (String?, nullable) and `stories` (Json?, nullable) to Prisma `Run` model
+- API: extend `ValidatedPayload` and `buildRunData` in telemetry ingestion to accept and persist `featureSpec` and `stories`
 
 ### Out of Scope
 - Mutations of any kind (no delete, retry, flag, or share actions)
@@ -39,6 +45,7 @@ status: draft
 - Stage-level drill-down beyond the fields defined in the telemetry schema (§3)
 - Rendering unknown/future stage keys from JSONB (render only the six known stages; ignore others gracefully)
 - Data export from the run detail page
+- Rendering `featureSpec` or `stories` for runs ingested before this change — those fields will be null; the graceful "not available" state covers this
 
 ---
 
@@ -66,12 +73,16 @@ status: draft
 2. Browser navigates to `/dashboard/runs/[id]`.
 3. Server Component fetches the run from Prisma using `id` from the URL parameter.
 4. Session userId is compared to `run.userId`. If they match, the page renders.
-5. Top-level run metadata is displayed in a summary header section.
-6. The `stages` JSONB field is deserialised; one card is rendered per known stage in pipeline order: `alex` → `cass` → `nigel-spec` → `nigel-tests` → `codey-plan` → `codey-implement`.
-7. Each stage card shows: name, duration, status badge, feedback rating, feedback issues (if any), input tokens, output tokens, cost.
-8. If the stage key is absent from the JSONB (e.g. Cass was skipped), the card is either omitted or shown in a "skipped" state.
-9. If `type === "refinement"` and `parentRunId` is non-null, a contextual link "View parent run →" links to `/dashboard/runs/[parentRunId]`.
-10. A back link returns the user to the run-history dashboard.
+5. Site nav header renders: murmur8 logo (left), "Run History" and "Keys" nav links (centre/right), user avatar and sign-out button (right).
+6. Four telemetry summary tiles render: Total Cost, Total Duration, Total Tokens (derived from stages JSONB), Stage Count.
+7. Top-level run metadata is displayed in a summary header section.
+8. The `stages` JSONB field is deserialised; one card is rendered per known stage in pipeline order: `alex` → `cass` → `nigel-spec` → `nigel-tests` → `codey-plan` → `codey-implement`.
+9. Each stage card shows: name, duration, status badge, feedback rating, feedback issues (if any), input tokens, output tokens, cost.
+10. If the stage key is absent from the JSONB (e.g. Cass was skipped), the card is either omitted or shown in a "skipped" state.
+11. If `type === "refinement"` and `parentRunId` is non-null, a contextual link "View parent run →" links to `/dashboard/runs/[parentRunId]`.
+12. A back link labelled "← Run History" returns the user to the run-history dashboard.
+13. If `run.featureSpec` is non-null, it is rendered as Markdown below the stage breakdown; otherwise "Not available for this run" is shown.
+14. If `run.stories` is non-null, each story's `title` and `content` are rendered below the feature spec section; otherwise "Not available for this run" is shown.
 
 **Error paths:**
 - Run ID not found in DB → 404 page.
@@ -115,8 +126,9 @@ Relevant lifecycle states (from System Spec §5):
 | **`project-scaffold`** | Provides Next.js 15 App Router, Prisma client, Tailwind brand theme, layout/auth middleware. |
 | **`github-auth`** | Provides session with `userId`; session must be available in the Server Component via `auth()`. |
 | **`telemetry-ingestion`** | Populates the `Run` records and `stages` JSONB that this page reads. |
-| **Prisma `Run` model** | Must include all fields listed in §5 of the System Spec, with `stages` typed as `Json`. |
+| **Prisma `Run` model** | Must include all fields listed in §5 of the System Spec, with `stages` typed as `Json`, and the new `featureSpec` (String?) and `stories` (Json?) fields. |
 | **murmur8 telemetry schema** | `.business_context/murmur8-framework-understanding.md` §3 defines stage keys and field names. |
+| **`InsightsPanel` / tile component** | Dashboard feature metric tile visual pattern; reused on this page for the four telemetry summary tiles. |
 
 ---
 
@@ -138,6 +150,9 @@ Relevant lifecycle states (from System Spec §5):
 - Next.js `notFound()` is used to emit a 404 response from a Server Component.
 - Session is accessed via `auth()` from NextAuth v5 inside the Server Component.
 - The six known stage keys are fixed for v1: `alex`, `cass`, `nigel-spec`, `nigel-tests`, `codey-plan`, `codey-implement`.
+- `featureSpec` is a plain Markdown string; no special sanitisation needed for v1.
+- `stories` is stored as a JSON array of `{title: string, content: string}`; the portal validates the shape on receipt.
+- Runs before this migration have `featureSpec = null` and `stories = null`; the graceful "not available" state covers this.
 
 **Open Questions:**
 - AQ1: Should a "skipped" stage (e.g. Cass for technical features) be shown as a dimmed card, or omitted entirely? Recommend omit for clarity — confirm with product.
@@ -162,6 +177,9 @@ Relevant lifecycle states (from System Spec §5):
 3. **Refinement run link** — user on a refinement run detail page sees and can follow a link to the parent run.
 4. **Access control** — user cannot view another user's run; receives 404.
 5. **Graceful degradation** — stages with missing fields or absent stage keys render without errors.
+6. **Site nav header** — the detail page renders the consistent site-wide nav header (logo, nav links, user avatar, sign-out) matching the dashboard.
+7. **Telemetry summary tiles** — four metric tiles (Total Cost, Total Duration, Total Tokens, Stage Count) render on the detail page reusing the InsightsPanel tile visual pattern.
+8. **Feature spec and stories display** — `featureSpec` renders as Markdown when present; `stories` renders as titled sections when present; both show "Not available for this run" when null; telemetry ingest API persists both fields.
 
 **Expected story boundaries:** one story per theme above; AQ1 (skipped stage display) and AQ2 (`stepsCompleted`) should be confirmed before Cass writes those stories.
 
@@ -176,3 +194,4 @@ Relevant lifecycle states (from System Spec §5):
 | Date | Change | Reason | Raised By |
 |------|--------|--------|-----------|
 | 2026-05-20 | Initial draft | Feature spec created by Alex | Alex |
+| 2026-05-27 | Refinement: site nav header, telemetry tiles, featureSpec/stories in DB | User feedback | User |

@@ -84,6 +84,69 @@ export function formatNullable(value: string | number | null | undefined): strin
 }
 
 // ---------------------------------------------------------------------------
+// BACK_LINK — back navigation constant (story-run-header AC3)
+// ---------------------------------------------------------------------------
+
+export const BACK_LINK: { label: string; href: string } = {
+  label: '← Run History',
+  href: '/dashboard/runs',
+};
+
+// ---------------------------------------------------------------------------
+// SITE_NAV_LINKS — site nav link definitions (story-site-nav)
+// ---------------------------------------------------------------------------
+
+export const SITE_NAV_LINKS: Array<{ label: string; href: string }> = [
+  { label: 'Run History', href: '/dashboard/runs' },
+  { label: 'API Keys', href: '/keys' },
+];
+
+// ---------------------------------------------------------------------------
+// computeTotalTokens — sum inputTokens + outputTokens across stage JSONB
+// (story-telemetry-tiles AC2, AC4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Sum inputTokens + outputTokens across all stages in a raw JSONB stages value.
+ * Null/absent token fields count as 0. Non-object input returns 0.
+ */
+export function computeTotalTokens(raw: unknown): number {
+  if (raw === null || raw === undefined) return 0;
+  if (typeof raw !== 'object' || Array.isArray(raw)) return 0;
+  const stages = raw as Record<string, unknown>;
+  let total = 0;
+  for (const stageData of Object.values(stages)) {
+    if (stageData !== null && typeof stageData === 'object' && !Array.isArray(stageData)) {
+      const s = stageData as Record<string, unknown>;
+      // Support both flat inputTokens/outputTokens and nested tokens.input/tokens.output
+      if (s.tokens !== null && typeof s.tokens === 'object' && !Array.isArray(s.tokens)) {
+        const t = s.tokens as Record<string, unknown>;
+        total += typeof t.input === 'number' ? t.input : 0;
+        total += typeof t.output === 'number' ? t.output : 0;
+      } else {
+        total += typeof s.inputTokens === 'number' ? s.inputTokens : 0;
+        total += typeof s.outputTokens === 'number' ? s.outputTokens : 0;
+      }
+    }
+  }
+  return total;
+}
+
+// ---------------------------------------------------------------------------
+// computeStageCount — number of stage keys in JSONB (story-telemetry-tiles AC5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the number of keys present in a raw JSONB stages object.
+ * Non-object input returns 0.
+ */
+export function computeStageCount(raw: unknown): number {
+  if (raw === null || raw === undefined) return 0;
+  if (typeof raw !== 'object' || Array.isArray(raw)) return 0;
+  return Object.keys(raw as Record<string, unknown>).length;
+}
+
+// ---------------------------------------------------------------------------
 // showRefinementLink
 // ---------------------------------------------------------------------------
 

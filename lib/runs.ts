@@ -41,6 +41,8 @@ export interface RunDetail {
   pausedAfter: string | null;
   parentRunId: string | null;
   stages: unknown;
+  featureSpec: string | null;
+  stories: unknown;
   receivedAt: Date;
 }
 
@@ -70,6 +72,8 @@ export async function getRunDetail(
       pausedAfter: true,
       parentRunId: true,
       stages: true,
+      featureSpec: true,
+      stories: true,
       receivedAt: true,
     },
   });

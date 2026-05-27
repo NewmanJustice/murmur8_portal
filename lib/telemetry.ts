@@ -12,6 +12,11 @@ import crypto from 'crypto';
 // Types
 // ---------------------------------------------------------------------------
 
+export type StoryEntry = {
+  title: string;
+  content: string;
+};
+
 export type ValidatedPayload = {
   slug: string;
   status: 'success' | 'failed' | 'paused';
@@ -27,6 +32,8 @@ export type ValidatedPayload = {
   pausedAfter?: string | null;
   parentRunId?: string | null;
   stages: Record<string, unknown>;
+  featureSpec?: string | null;
+  stories?: StoryEntry[] | null;
 };
 
 export type ValidationError = {
@@ -142,6 +149,35 @@ export function validatePayload(body: unknown): ValidationResult {
     }
   }
 
+  // featureSpec — optional string
+  if (b.featureSpec !== undefined && b.featureSpec !== null) {
+    if (typeof b.featureSpec !== 'string') {
+      errors.push({ field: 'featureSpec', message: 'featureSpec must be a string if provided' });
+    }
+  }
+
+  // stories — optional array of { title, content }
+  if (b.stories !== undefined && b.stories !== null) {
+    if (!Array.isArray(b.stories)) {
+      errors.push({ field: 'stories', message: 'stories must be an array if provided' });
+    } else {
+      for (let i = 0; i < b.stories.length; i++) {
+        const story = b.stories[i];
+        if (typeof story !== 'object' || story === null || Array.isArray(story)) {
+          errors.push({ field: 'stories', message: `stories[${i}] must be an object with title and content` });
+        } else {
+          const s = story as Record<string, unknown>;
+          if (typeof s.title !== 'string') {
+            errors.push({ field: 'stories', message: `stories[${i}].title must be a string` });
+          }
+          if (typeof s.content !== 'string') {
+            errors.push({ field: 'stories', message: `stories[${i}].content must be a string` });
+          }
+        }
+      }
+    }
+  }
+
   if (errors.length > 0) {
     return { success: false, errors };
   }
@@ -162,6 +198,8 @@ export function validatePayload(body: unknown): ValidationResult {
     pausedAfter: (b.pausedAfter as string | null | undefined) ?? null,
     parentRunId: (b.parentRunId as string | null | undefined) ?? null,
     stages: b.stages as Record<string, unknown>,
+    featureSpec: (b.featureSpec as string | null | undefined) ?? null,
+    stories: (b.stories as StoryEntry[] | null | undefined) ?? null,
   };
 
   return { success: true, data };
@@ -174,12 +212,25 @@ export function validatePayload(body: unknown): ValidationResult {
 export function buildRunData(
   key: ResolvedKey,
   payload: ValidatedPayload
-): Omit<ValidatedPayload, 'type'> & {
+): {
   userId: string;
   apiKeyId: string;
+  slug: string;
+  status: string;
   type: string;
   startedAt: Date;
   completedAt: Date;
+  totalDurationMs: number;
+  totalCost: number | null;
+  commitHash: string | null;
+  gitHubUser: string | null;
+  repoName: string | null;
+  failedStage: string | null;
+  pausedAfter: string | null;
+  parentRunId: string | null;
+  stages: Record<string, unknown>;
+  featureSpec: string | null;
+  stories: StoryEntry[] | null;
 } {
   return {
     userId: key.userId,
@@ -198,5 +249,7 @@ export function buildRunData(
     pausedAfter: payload.pausedAfter ?? null,
     parentRunId: payload.parentRunId ?? null,
     stages: payload.stages,
+    featureSpec: payload.featureSpec ?? null,
+    stories: payload.stories ?? null,
   };
 }
