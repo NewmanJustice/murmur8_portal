@@ -94,7 +94,10 @@ The revocation state maintained here is what causes the telemetry endpoint to re
    `lastUsedAt = null`, `revokedAt = null`.
 6. The raw key is returned to the client and displayed once in a copy-to-clipboard
    modal with a prominent warning: "Copy this key — you will not see it again."
+   The copy button in the modal copies the full raw key value to the clipboard.
 7. After the user dismisses the modal, the raw key is removed from client state.
+   The key prefix column in the keys table shows a read-only masked value only —
+   no clipboard icon or copy action is present after dismissal.
 
 ### 4.2 List Keys
 

@@ -152,3 +152,54 @@ test('T-14: isRevoked returns false when revokedAt is null', () => {
   const key = { revokedAt: null };
   assert.strictEqual(isRevoked(key), false, 'key with revokedAt null should not be revoked');
 });
+
+// ---------------------------------------------------------------------------
+// T-15: KeysClient.tsx table must not render CopyButton next to keyPrefix
+// AC6 — prefix is read-only; clipboard icon removed from table rows
+// ---------------------------------------------------------------------------
+test('T-15: KeysClient table rows must not render CopyButton next to keyPrefix', async () => {
+  const fs = await import('node:fs');
+  const keysClientPath = path.join(worktreeRoot, 'app', '(dashboard)', 'keys', 'KeysClient.tsx');
+  const src = fs.readFileSync(keysClientPath, 'utf8');
+
+  // CopyButton component must not appear inside the keys table rows
+  // (it may still exist in the file if shared, but must not be used in the table)
+  const tableSection = src.slice(src.indexOf('Keys table'));
+  assert.ok(
+    !tableSection.includes('<CopyButton'),
+    'CopyButton must not be rendered in the keys table rows'
+  );
+});
+
+// ---------------------------------------------------------------------------
+// T-16: AdminKeysClient.tsx table must not render CopyButton next to keyPrefix
+// AC4 (admin-view) — prefix is read-only in the admin table too
+// ---------------------------------------------------------------------------
+test('T-16: AdminKeysClient table must not render CopyButton next to keyPrefix', async () => {
+  const fs = await import('node:fs');
+  const adminClientPath = path.join(worktreeRoot, 'app', 'admin', 'keys', 'AdminKeysClient.tsx');
+  const src = fs.readFileSync(adminClientPath, 'utf8');
+
+  const tableSection = src.slice(src.indexOf('<tbody>'));
+  assert.ok(
+    !tableSection.includes('<CopyButton'),
+    'CopyButton must not be rendered in the admin keys table rows'
+  );
+});
+
+// ---------------------------------------------------------------------------
+// T-17: RevealModal copy button must write the rawKey (not keyPrefix) to clipboard
+// AC3 — the modal copy button copies the full raw key value
+// ---------------------------------------------------------------------------
+test('T-17: RevealModal copy button writes rawKey to clipboard', async () => {
+  const fs = await import('node:fs');
+  const keysClientPath = path.join(worktreeRoot, 'app', '(dashboard)', 'keys', 'KeysClient.tsx');
+  const src = fs.readFileSync(keysClientPath, 'utf8');
+
+  // RevealModal must use rawKey (not keyPrefix) in its clipboard.writeText call
+  const modalSection = src.slice(src.indexOf('RevealModal'), src.indexOf('RevokeButton'));
+  assert.ok(
+    modalSection.includes('clipboard.writeText(rawKey)'),
+    'RevealModal must call navigator.clipboard.writeText(rawKey)'
+  );
+});

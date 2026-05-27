@@ -35,7 +35,7 @@ Then each row includes an "Owner" column showing the key owner's name and avatar
 **AC4 — Same column set as user view**
 Given I am on `/admin/keys`,
 When I view the table,
-Then the columns include: Owner, Name, Key Prefix, Created, Last Used, Status.
+Then the columns include: Owner, Name, Key Prefix, Created, Last Used, Status. The Key Prefix column shows read-only text with no clipboard icon or copy action.
 
 **AC5 — Unauthenticated access redirected**
 Given I am not signed in,

@@ -25,7 +25,7 @@ Then I see a table with columns: Name, Key Prefix, Created, Last Used, Status.
 **AC2 — Masked prefix display**
 Given a key was created with a known raw value,
 When that key appears in the table,
-Then the "Key Prefix" column shows the first 12 characters of the raw key followed by `...` (e.g. `mm8_a1b2c3d4...`).
+Then the "Key Prefix" column shows the first 12 characters of the raw key followed by `...` (e.g. `mm8_a1b2c3d4...`). No clipboard icon or copy action is present — the prefix is read-only display text for identification only.
 
 **AC3 — Active status badge**
 Given a key has not been revoked (`revokedAt IS NULL`),

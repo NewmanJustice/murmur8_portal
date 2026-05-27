@@ -30,7 +30,7 @@ Then I see a validation error "Name must be 64 characters or fewer" and no key i
 **AC3 — Successful creation shows raw key once**
 Given I submit a valid name (1–64 characters),
 When the server creates the key,
-Then a modal appears showing the full raw key with a copy-to-clipboard button and a warning: "Copy this key — you will not see it again."
+Then a modal appears showing the full raw key with a copy-to-clipboard button and a warning: "Copy this key — you will not see it again." The copy button copies the full raw key value to the clipboard.
 
 **AC4 — Raw key format**
 Given the key has been successfully created,
@@ -41,6 +41,13 @@ Then it begins with the prefix `mm8_` followed by exactly 64 lowercase hex chara
 Given the creation modal is open,
 When I dismiss the modal (click "I've copied it"),
 Then the raw key is removed from the page and cannot be retrieved from the portal UI.
+
+---
+
+**AC6 — No copy action in the keys table**
+Given I have dismissed the creation modal,
+When I view my keys in the table,
+Then no clipboard icon is shown next to the key prefix — the prefix is displayed as read-only text for identification only.
 
 ---
 
