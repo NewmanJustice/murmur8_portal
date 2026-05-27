@@ -25,7 +25,7 @@ export interface AdminApiKeyRecord extends ApiKeyRecord {
   user: {
     id: string;
     name: string | null;
-    avatarUrl: string | null;
+    image: string | null;
   };
 }
 
@@ -125,7 +125,7 @@ export async function adminListApiKeys(): Promise<AdminApiKeyRecord[]> {
         select: {
           id: true,
           name: true,
-          avatarUrl: true,
+          image: true,
         },
       },
     },

@@ -11,7 +11,7 @@ import { revokeAnyKey } from './actions';
 interface KeyOwner {
   id: string;
   name: string | null;
-  avatarUrl: string | null;
+  image: string | null;
 }
 
 interface AdminKeyRow {
@@ -170,10 +170,10 @@ export function AdminKeysClient({ keys }: AdminKeysClientProps) {
               {/* Owner */}
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                  {key.user.avatarUrl ? (
+                  {key.user.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={key.user.avatarUrl}
+                      src={key.user.image}
                       alt={key.user.name ?? 'User'}
                       width={24}
                       height={24}
