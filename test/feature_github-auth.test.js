@@ -214,9 +214,11 @@ describe('T-07 & T-08: middleware.ts — auth export pattern', () => {
 
   it('exports auth as middleware (NextAuth v5 pattern)', () => {
     const content = readFile('middleware.ts');
+    // Must contain the explicit re-export pattern, not a hand-rolled middleware function.
+    // Acceptable forms: `export { auth as middleware }` or `export { auth as middleware } from "./auth"`
     assert.ok(
-      content.includes('auth') && content.includes('middleware'),
-      'Expected "export { auth as middleware }" pattern in middleware.ts'
+      /export\s*\{[^}]*auth\s+as\s+middleware[^}]*\}/.test(content),
+      'Expected `export { auth as middleware }` (or `export { auth as middleware } from "./auth"`) in middleware.ts'
     );
   });
 
@@ -500,6 +502,35 @@ describe('NextAuth adapter contract — User model fields', () => {
     assert.ok(
       /\bimage\s+String\?/.test(userModel),
       'Expected User model to have: image  String?'
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-GA-NEW-11: middleware.ts — DEV_AUTOLOGIN bypass must NOT live in middleware.ts
+// (AC-PROTECT-1/2: auth enforcement belongs in auth.ts, not middleware.ts)
+//
+// The DEV_AUTOLOGIN=true dev shortcut may only live in auth.ts (via getSession()).
+// middleware.ts must always delegate auth enforcement to NextAuth by re-exporting
+// `auth as middleware`. A custom function body in middleware.ts that short-circuits
+// on DEV_AUTOLOGIN bypasses the entire NextAuth protection layer.
+// ---------------------------------------------------------------------------
+describe('T-GA-NEW-11: middleware.ts — DEV_AUTOLOGIN bypass is NOT in middleware.ts', () => {
+  it('middleware.ts does not reference DEV_AUTOLOGIN', () => {
+    const content = readFile('middleware.ts');
+    assert.ok(
+      !content.includes('DEV_AUTOLOGIN'),
+      'middleware.ts must not reference DEV_AUTOLOGIN — the bypass belongs in auth.ts (getSession), not here'
+    );
+  });
+
+  it('middleware.ts does not define a custom middleware function body', () => {
+    const content = readFile('middleware.ts');
+    // A hand-rolled `export function middleware(...)` is the anti-pattern.
+    // The NextAuth v5 pattern is `export { auth as middleware } from "./auth"` with no function body.
+    assert.ok(
+      !/export\s+(?:default\s+)?(?:async\s+)?function\s+middleware\b/.test(content),
+      'middleware.ts must not export a hand-rolled middleware function — use `export { auth as middleware } from "./auth"` instead'
     );
   });
 });

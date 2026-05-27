@@ -136,6 +136,8 @@ The `User` record is permanent once created. The `signIn` callback's `updateMany
 - **Inputs**: Incoming request path, session cookie presence/validity.
 - **Output**: Pass through (authenticated) or redirect to `/` (unauthenticated).
 - **Deterministic**: Yes — middleware always checks session.
+- **Implementation**: `middleware.ts` MUST use the NextAuth v5 re-export pattern: `export { auth as middleware } from "./auth"`. This delegates all session validation to NextAuth — no custom middleware logic is needed.
+- **DEV_AUTOLOGIN exception (dev only)**: When `DEV_AUTOLOGIN=true`, `middleware.ts` must detect this env var and call `NextResponse.next()` directly without invoking the `auth` export, because `getSession()` in that mode returns a fake session that bypasses NextAuth. This bypass MUST NOT be applied in production (i.e. when `DEV_AUTOLOGIN` is unset or `false`). The canonical implementation is a two-branch middleware function: the `DEV_AUTOLOGIN` branch returns early with `NextResponse.next()`; the production branch calls the NextAuth `auth` handler (or uses the re-export where the DEV branch is unreachable at runtime).
 
 ### R-AUTH-2: User record creation on first sign-in
 - **Rule**: The `@auth/prisma-adapter` creates the `User` row using `name`, `email`, and `image` from the OAuth profile. The `signIn` callback then backfills `githubId`, `image`, and `isAdmin` via `updateMany` scoped to `{ email, githubId: null }` — ensuring it only fires on first sign-in.
@@ -245,7 +247,7 @@ The `User` record is permanent once created. The `signIn` callback's `updateMany
 |---|----------|-------------------|
 | AQ1 | Should sign-in update `name`/`email`/`avatarUrl` on returning users? | Defer to a later feature or a profile-sync feature; keep auth minimal for now. |
 | AQ2 | Where should unauthenticated users be redirected — `/` or a dedicated `/login`? | Use `/` as the combined landing/login page per current scaffold. |
-| AQ3 | Should `middleware.ts` use the `auth` export directly, or add custom logic? | Use `export { auth as middleware }` with a `config` matcher to skip static assets. No custom logic needed for this feature. |
+| AQ3 | Should `middleware.ts` use the `auth` export directly, or add custom logic? | **Resolved.** Use `export { auth as middleware }` with a `config` matcher to skip static assets. Exception: when `DEV_AUTOLOGIN=true`, middleware must pass all requests through without invoking the `auth` export (fake session incompatibility). The two-branch pattern — early-return on `DEV_AUTOLOGIN=true`, otherwise delegate to `auth` — is the canonical implementation. No additional custom logic is needed beyond the DEV_AUTOLOGIN guard. |
 
 ---
 
@@ -294,3 +296,4 @@ This feature **reinforces** existing System Spec assumptions:
 | 2026-05-27 | Renamed `avatarUrl` → `image` throughout spec (Bug 1: PrismaAdapter writes `image`, not `avatarUrl`) | AdapterError: Unknown argument `image` in production | Alex |
 | 2026-05-27 | Revised User creation model: adapter owns creation, signIn callback backfills via `updateMany` (Bug 2: OAuthAccountNotLinked race condition) | Race between manual `prisma.user.create()` in signIn callback and adapter's own create caused OAuthAccountNotLinked | Alex |
 | 2026-05-27 | Added R-AUTH-7: @auth/prisma-adapter field contract — User model must include id, name, email, emailVerified, image | Production AdapterError: emailVerified missing from User model; tests only checked image, not the full adapter contract | Steve |
+| 2026-05-27 | R-AUTH-1 clarified: middleware.ts must use NextAuth v5 auth re-export for production route protection; DEV_AUTOLOGIN bypass documented as dev-only exception; AQ3 resolved | middleware.ts called NextResponse.next() in both branches, never protecting routes in production — T-07/T-08 failing because middleware.ts had no import from ./auth | Steve |

@@ -109,3 +109,52 @@ T-GA-NEW-10 complements T-GA-NEW-3 (which is retained unchanged) with a tighter 
 | Fail | 1 (pre-existing: T-07 "imports from ./auth") |
 
 All five new tests T-GA-NEW-6 through T-GA-NEW-10 pass against the current schema (which now contains `emailVerified DateTime?`).
+
+---
+
+## Refinement 2026-05-27 — T-07 tightened + T-GA-NEW-11 added for DEV_AUTOLOGIN contract
+
+### Decision on T-07/T-08
+
+**T-07 and T-08 are correct as written — Codey must fix middleware.ts, not the tests.**
+
+The correct implementation is `export { auth as middleware } from "./auth"`. The DEV_AUTOLOGIN bypass must live exclusively in `auth.ts` (via the `getSession()` helper), never in `middleware.ts`. A custom middleware function body in `middleware.ts` bypasses the entire NextAuth protection layer when `DEV_AUTOLOGIN` is unset, because the function unconditionally returns `NextResponse.next()` on both branches.
+
+### T-07 — assertion tightened
+
+The previous T-07 assertion (`content.includes('auth') && content.includes('middleware')`) was too loose: it passed against the broken implementation because the file contained both words in comments and the function name. The assertion was tightened to require the explicit re-export pattern:
+
+```
+/export\s*\{[^}]*auth\s+as\s+middleware[^}]*\}/
+```
+
+This now fails against the current hand-rolled middleware.ts (as expected).
+
+### T-GA-NEW-11: DEV_AUTOLOGIN bypass must NOT be in middleware.ts
+
+Two new assertions added in the `T-GA-NEW-11` describe block:
+
+| Assertion | Rationale |
+|-----------|-----------|
+| `middleware.ts does not reference DEV_AUTOLOGIN` | The env-var bypass belongs in `auth.ts`/`getSession()`, not middleware |
+| `middleware.ts does not define a custom middleware function body` | Anti-pattern: `export function middleware(...)` short-circuits NextAuth entirely |
+
+Both assertions correctly fail against the current middleware.ts, which uses `export function middleware(_req: NextRequest)` and checks `DEV_AUTOLOGIN` inside it.
+
+### Test run status after this refinement
+
+| Status | Count |
+|--------|-------|
+| Pass | 35 |
+| Fail | 4 |
+
+All 4 failures are correctly caused by the broken `middleware.ts` and will be resolved when Codey rewrites it to `export { auth as middleware } from "./auth"`:
+
+| Test | Failure cause |
+|------|---------------|
+| T-07 "exports auth as middleware" | No `export { auth as middleware }` pattern present |
+| T-08 "imports from ./auth" | No import from `"./auth"` present |
+| T-GA-NEW-11 "does not reference DEV_AUTOLOGIN" | `DEV_AUTOLOGIN` is in middleware.ts |
+| T-GA-NEW-11 "does not define a custom middleware function body" | `export function middleware(...)` present |
+
+No test IDs were removed. Existing T-01 through T-06 and T-09 through T-15 and T-GA-NEW-1 through T-GA-NEW-10 are unchanged.
