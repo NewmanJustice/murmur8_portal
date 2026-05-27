@@ -48,41 +48,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 
   callbacks: {
-    async signIn({ user, profile, account }) {
-      if (!profile?.id) return true;
-
+    async signIn({ profile, account }) {
+      // Org membership check (optional)
       if (process.env.GITHUB_ORG_CHECK === 'true' && process.env.GITHUB_ORG) {
         const res = await fetch('https://api.github.com/user/orgs', {
           headers: { Authorization: `Bearer ${account?.access_token}` },
         });
         if (!res.ok) return false;
         const orgs: { login: string }[] = await res.json();
-        const isMember = orgs.some((o) => o.login === process.env.GITHUB_ORG);
-        if (!isMember) return false;
+        if (!orgs.some((o) => o.login === process.env.GITHUB_ORG)) return false;
       }
 
-      const githubId = String(profile.id);
-
-      const existing = await prisma.user.findUnique({
-        where: { githubId },
-        select: { id: true },
-      });
-
-      if (!existing) {
+      // Backfill githubId, avatarUrl, isAdmin after the adapter creates the user
+      if (profile?.id) {
+        const githubId = String(profile.id);
+        const avatarUrl = (profile as { avatar_url?: string }).avatar_url ?? null;
         const isAdmin =
-          process.env.ADMIN_GITHUB_ID !== undefined &&
-          process.env.ADMIN_GITHUB_ID !== ""
+          process.env.ADMIN_GITHUB_ID !== undefined && process.env.ADMIN_GITHUB_ID !== ""
             ? githubId === process.env.ADMIN_GITHUB_ID
             : false;
 
-        await prisma.user.create({
-          data: {
-            githubId,
-            name: user.name ?? null,
-            email: user.email ?? null,
-            avatarUrl: (profile as { avatar_url?: string }).avatar_url ?? null,
-            isAdmin,
-          },
+        // The adapter has already upserted the User by this point — just patch our extra fields
+        await prisma.user.updateMany({
+          where: { email: (profile.email as string | null) ?? undefined, githubId: null },
+          data: { githubId, avatarUrl, isAdmin },
         });
       }
 
