@@ -46,8 +46,11 @@
 
 ## Technical Note for Nigel/Codey
 
-The admin check is performed server-side in the `signIn` callback (or equivalent event hook) within `auth.ts`. The comparison is:
+The admin check is performed server-side in the `signIn` callback within `auth.ts`. The `@auth/prisma-adapter` creates the User record first; the callback then backfills adapter-unaware fields using:
 ```
-isAdmin: String(profile.id) === process.env.ADMIN_GITHUB_ID
+prisma.user.updateMany({
+  where: { email: profile.email, githubId: null },
+  data: { githubId, image, isAdmin }
+})
 ```
-This is evaluated only when creating a new User record — the existing User lookup must happen BEFORE this check to ensure the "set once" invariant is upheld.
+The `githubId: null` guard in the WHERE clause enforces the "set once" invariant: returning users already have `githubId` set, so the `updateMany` is a no-op for them and `isAdmin` is never overwritten. The `isAdmin` value is computed as `String(profile.id) === process.env.ADMIN_GITHUB_ID` before the `updateMany` call.

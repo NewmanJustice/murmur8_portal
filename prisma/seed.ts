@@ -95,7 +95,7 @@ async function main() {
       githubId: 'seed-user-1',
       name: 'Steve Newman',
       email: 'steve@example.com',
-      avatarUrl: 'https://avatars.githubusercontent.com/u/1?v=4',
+      image: 'https://avatars.githubusercontent.com/u/1?v=4',
       isAdmin: true,
     },
   })

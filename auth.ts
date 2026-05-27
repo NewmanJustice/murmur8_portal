@@ -15,7 +15,6 @@ export const DEV_SESSION =
           email: 'steve@example.com',
           image: null,
           isAdmin: true,
-          avatarUrl: null as string | null,
         },
         expires: new Date(Date.now() + 86_400_000 * 30).toISOString(),
       }
@@ -59,10 +58,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!orgs.some((o) => o.login === process.env.GITHUB_ORG)) return false;
       }
 
-      // Backfill githubId, avatarUrl, isAdmin after the adapter creates the user
+      // Backfill githubId, image, isAdmin after the adapter creates the user
       if (profile?.id) {
         const githubId = String(profile.id);
-        const avatarUrl = (profile as { avatar_url?: string }).avatar_url ?? null;
+        const image = (profile as { avatar_url?: string }).avatar_url ?? null;
         const isAdmin =
           process.env.ADMIN_GITHUB_ID !== undefined && process.env.ADMIN_GITHUB_ID !== ""
             ? githubId === process.env.ADMIN_GITHUB_ID
@@ -71,7 +70,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // The adapter has already upserted the User by this point — just patch our extra fields
         await prisma.user.updateMany({
           where: { email: (profile.email as string | null) ?? undefined, githubId: null },
-          data: { githubId, avatarUrl, isAdmin },
+          data: { githubId, image, isAdmin },
         });
       }
 
@@ -82,12 +81,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user && user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { id: true, isAdmin: true, avatarUrl: true },
+          select: { id: true, isAdmin: true, image: true },
         });
         if (dbUser) {
-          (session.user as typeof session.user & { id: string; isAdmin: boolean; avatarUrl: string | null }).id = dbUser.id;
-          (session.user as typeof session.user & { id: string; isAdmin: boolean; avatarUrl: string | null }).isAdmin = dbUser.isAdmin;
-          (session.user as typeof session.user & { id: string; isAdmin: boolean; avatarUrl: string | null }).avatarUrl = dbUser.avatarUrl;
+          (session.user as typeof session.user & { id: string; isAdmin: boolean; image: string | null }).id = dbUser.id;
+          (session.user as typeof session.user & { id: string; isAdmin: boolean; image: string | null }).isAdmin = dbUser.isAdmin;
+          (session.user as typeof session.user & { id: string; isAdmin: boolean; image: string | null }).image = dbUser.image;
         }
       }
       return session;

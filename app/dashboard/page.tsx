@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   const user = session.user as typeof session.user & {
     id?: string;
     isAdmin?: boolean;
-    avatarUrl?: string | null;
+    image?: string | null;
   };
 
   const userId = user.id;
@@ -73,10 +73,10 @@ export default async function DashboardPage() {
               )}
             </nav>
 
-            {(user.image || user.avatarUrl) ? (
+            {user.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={user.avatarUrl ?? user.image ?? ""}
+                src={user.image}
                 alt={user.name ?? "User avatar"}
                 className="h-8 w-8 rounded-full border border-starling-cyan/50"
               />

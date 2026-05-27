@@ -26,14 +26,15 @@ The murmur8 Portal is a private dashboard — anonymous visitors must never acce
 
 - GitHub OAuth sign-in via NextAuth.js v5 (Auth.js v5) using the existing `auth.ts` stub
 - Connecting the Prisma adapter (`@auth/prisma-adapter`) so sessions are persisted in PostgreSQL
-- Creating a `User` record on first sign-in, populated from GitHub OAuth profile data (`githubId`, `name`, `email`, `avatarUrl`)
+- Creating a `User` record on first sign-in, populated from GitHub OAuth profile data (`githubId`, `name`, `email`, `image`)
+- The `@auth/prisma-adapter` owns User record creation; the `signIn` callback backfills the adapter-unaware fields (`githubId`, `isAdmin`, `image`) via `updateMany` after the adapter has created the record
 - Setting `isAdmin = true` on first sign-in if the user's GitHub numeric ID matches the `ADMIN_GITHUB_ID` environment variable; all other users default to `isAdmin = false`
 - Sign-out that clears the database session and redirects to the login page
 - Route protection via `middleware.ts` using the `auth` export — all routes except `/` (the login/landing page) require an active session
 - Unauthenticated requests to protected routes redirect to `/`
 - A login page at `/` with a "Sign in with GitHub" button
 - A minimal post-auth landing route (e.g. `/dashboard`) that confirms successful sign-in (placeholder for later features)
-- Exposing the authenticated user's `id`, `name`, `avatarUrl`, and `isAdmin` to server components via the `auth()` helper
+- Exposing the authenticated user's `id`, `name`, `image`, and `isAdmin` to server components via the `auth()` helper
 
 ### Out of Scope
 
@@ -56,8 +57,8 @@ The murmur8 Portal is a private dashboard — anonymous visitors must never acce
 - Initiates the GitHub OAuth flow by clicking "Sign in with GitHub"
 
 ### User (newly authenticated — first sign-in)
-- Completes GitHub OAuth; portal creates a new `User` record
-- `isAdmin` evaluated against `ADMIN_GITHUB_ID` at record creation
+- Completes GitHub OAuth; `@auth/prisma-adapter` creates a new `User` record, then `signIn` callback backfills `githubId`, `image`, `isAdmin`
+- `isAdmin` evaluated against `ADMIN_GITHUB_ID` during the backfill step
 - Redirected to `/dashboard` after successful sign-in
 
 ### User (returning — subsequent sign-in)
@@ -80,10 +81,11 @@ The murmur8 Portal is a private dashboard — anonymous visitors must never acce
 2. Visitor clicks "Sign in with GitHub"; browser redirects to GitHub OAuth consent.
 3. GitHub redirects back to `/api/auth/callback/github` with an authorisation code.
 4. NextAuth exchanges the code for an access token and fetches the GitHub profile.
-5. `@auth/prisma-adapter` creates `Account` and `Session` records.
-6. The `signIn` callback (or equivalent event hook) checks whether a `User` record exists for this `githubId`.
-   - If not: create `User` with `{ githubId, name, email, avatarUrl, isAdmin: githubId === ADMIN_GITHUB_ID }`.
-   - If yes: no-op (existing record).
+5. `@auth/prisma-adapter` creates the `User` (with `name`, `email`, `image`), `Account`, and `Session` records.
+6. The `signIn` callback runs after the adapter. It backfills the fields the adapter does not know about:
+   - Calls `prisma.user.updateMany({ where: { email, githubId: null }, data: { githubId, image, isAdmin } })`.
+   - This is a no-op for returning users (their `githubId` is already set, so the `where` clause matches nothing).
+   - `isAdmin` is evaluated as `String(profile.id) === process.env.ADMIN_GITHUB_ID` — only applied on first sign-in via the `githubId: null` guard.
 7. A session cookie is set; user is redirected to `/dashboard`.
 
 ### Happy-path — return sign-in
@@ -117,13 +119,13 @@ This feature is **state-creating** for the `User` entity and **state-transitioni
 
 | State | Created / Entered | How |
 |-------|-------------------|-----|
-| `User` record (new) | First sign-in | `signIn` callback creates row |
+| `User` record (new) | First sign-in | `@auth/prisma-adapter` creates row; `signIn` callback backfills `githubId`, `image`, `isAdmin` via `updateMany` |
 | `Account` record | First sign-in | `@auth/prisma-adapter` creates row |
 | `Session` record (active) | Successful sign-in | `@auth/prisma-adapter` creates row |
 | `Session` record (deleted) | Sign-out | `@auth/prisma-adapter` deletes row |
 | `isAdmin = true` | First sign-in (if matching) | Set at `User` creation; never changed by auth |
 
-The `User` record is permanent once created. No sign-in event modifies existing User fields (this keeps the auth feature minimal and non-destructive).
+The `User` record is permanent once created. The `signIn` callback's `updateMany` call uses a `githubId: null` guard so it is a no-op for returning users — no existing User fields are modified after first sign-in.
 
 ---
 
@@ -136,9 +138,10 @@ The `User` record is permanent once created. No sign-in event modifies existing 
 - **Deterministic**: Yes — middleware always checks session.
 
 ### R-AUTH-2: User record creation on first sign-in
-- **Rule**: If no `User` row exists with the incoming `githubId`, create one.
-- **Inputs**: GitHub OAuth profile (`id`, `name`, `email`, `avatar_url`).
-- **Output**: New `User` row; `isAdmin` evaluated per R-AUTH-3.
+- **Rule**: The `@auth/prisma-adapter` creates the `User` row using `name`, `email`, and `image` from the OAuth profile. The `signIn` callback then backfills `githubId`, `image`, and `isAdmin` via `updateMany` scoped to `{ email, githubId: null }` — ensuring it only fires on first sign-in.
+- **Inputs**: GitHub OAuth profile (`id`, `name`, `email`, `avatar_url` → mapped to `image`).
+- **Output**: `User` row fully populated; `isAdmin` evaluated per R-AUTH-3.
+- **Constraint**: `githubId` is nullable on the `User` model to accommodate the window between adapter creation and callback backfill.
 - **Deterministic**: Yes.
 
 ### R-AUTH-3: Admin elevation via environment variable
@@ -160,7 +163,7 @@ The `User` record is permanent once created. No sign-in event modifies existing 
 - **Resolves**: OQ1 from System Spec §9.
 
 ### R-AUTH-6: No cross-user data via session
-- **Rule**: The session exposes only the authenticated user's own `User.id` (and optionally `name`, `avatarUrl`, `isAdmin`). No other user's data is included.
+- **Rule**: The session exposes only the authenticated user's own `User.id` (and optionally `name`, `image`, `isAdmin`). No other user's data is included.
 - **Deterministic**: Yes — enforced by NextAuth session callback scope.
 
 ---
@@ -245,7 +248,7 @@ This feature **reinforces** existing System Spec assumptions:
 
 - Resolves OQ1 (session strategy): **database sessions** selected (see R-AUTH-4). The System Spec should be updated to reflect this decision at `§9 OQ1`.
 - Confirms the `ADMIN_GITHUB_ID` env var mechanism described in §6.3 and §9 OQ5.
-- The Prisma schema already has all required models (`User`, `Account`, `Session`, `VerificationToken`) — no schema changes needed.
+- The Prisma schema has all required models (`User`, `Account`, `Session`, `VerificationToken`). The `User.avatarUrl` field must be renamed to `User.image` to align with the `@auth/prisma-adapter` contract (the adapter writes `image`, not `avatarUrl`). `githubId` must remain nullable (`String?`) to accommodate the adapter-first creation sequence.
 
 **No contradictions with the System Spec.** No deferred changes required at this time.
 
@@ -281,3 +284,5 @@ This feature **reinforces** existing System Spec assumptions:
 |------|--------|--------|-----------|
 | 2026-05-20 | Initial draft | Feature created | Alex |
 | 2026-05-20 | Added R-AUTH-4 (org restriction), updated env var table, security section | GITHUB_ORG_CHECK / GITHUB_ORG env vars added | Steve |
+| 2026-05-27 | Renamed `avatarUrl` → `image` throughout spec (Bug 1: PrismaAdapter writes `image`, not `avatarUrl`) | AdapterError: Unknown argument `image` in production | Alex |
+| 2026-05-27 | Revised User creation model: adapter owns creation, signIn callback backfills via `updateMany` (Bug 2: OAuthAccountNotLinked race condition) | Race between manual `prisma.user.create()` in signIn callback and adapter's own create caused OAuthAccountNotLinked | Alex |

@@ -23,28 +23,34 @@ function fileExists(relPath) {
 }
 
 // ---------------------------------------------------------------------------
-// Pure upsert logic — extracted for unit testing (mirrors what auth.ts implements)
+// Pure backfill logic — extracted for unit testing (mirrors what auth.ts implements)
 // ---------------------------------------------------------------------------
 
 /**
- * Determines whether to create a User and what isAdmin should be.
+ * Determines whether to backfill adapter-created User and what isAdmin should be.
  * This mirrors the signIn callback logic in auth.ts.
+ *
+ * The Prisma adapter creates the User record first. The signIn callback then
+ * calls prisma.user.updateMany({ where: { email, githubId: null }, data: { githubId, image, isAdmin } })
+ * to backfill extra fields. The githubId: null guard ensures returning users
+ * (who already have githubId set) are never overwritten.
  *
  * @param {object} opts
  * @param {string} opts.githubId - String form of GitHub profile numeric ID
- * @param {string|null} opts.existingUserId - null if user doesn't exist yet
+ * @param {string|null} opts.existingGithubId - current githubId on the User row (null if adapter just created it)
  * @param {string|undefined} opts.adminGithubId - process.env.ADMIN_GITHUB_ID
- * @returns {{ shouldCreate: boolean, isAdmin: boolean }}
+ * @returns {{ shouldBackfill: boolean, isAdmin: boolean }}
  */
-function upsertDecision({ githubId, existingUserId, adminGithubId }) {
-  if (existingUserId !== null) {
-    // User already exists — no-op
-    return { shouldCreate: false, isAdmin: null };
+function upsertDecision({ githubId, existingGithubId, adminGithubId }) {
+  if (existingGithubId !== null) {
+    // Returning user — adapter-created User already has githubId set, updateMany is a no-op
+    return { shouldBackfill: false, isAdmin: null };
   }
+  // New user — adapter just created the row with githubId: null; we backfill
   const isAdmin = adminGithubId !== undefined && adminGithubId !== ''
     ? String(githubId) === String(adminGithubId)
     : false;
-  return { shouldCreate: true, isAdmin };
+  return { shouldBackfill: true, isAdmin };
 }
 
 // ---------------------------------------------------------------------------
@@ -119,22 +125,22 @@ describe('T-02: auth.ts — NextAuth v5 config exports', () => {
 // (AC-SIGNIN-5)
 // ---------------------------------------------------------------------------
 describe('T-03: upsert logic — no-op for existing User', () => {
-  it('returns shouldCreate=false when existingUserId is provided', () => {
+  it('returns shouldBackfill=false when existingGithubId is already set (returning user)', () => {
     const result = upsertDecision({
       githubId: '99999',
-      existingUserId: 'existing-user-id',
+      existingGithubId: '99999',
       adminGithubId: undefined,
     });
-    assert.strictEqual(result.shouldCreate, false);
+    assert.strictEqual(result.shouldBackfill, false);
   });
 
-  it('returns shouldCreate=true when no existing user', () => {
+  it('returns shouldBackfill=true when existingGithubId is null (adapter just created user)', () => {
     const result = upsertDecision({
       githubId: '99999',
-      existingUserId: null,
+      existingGithubId: null,
       adminGithubId: undefined,
     });
-    assert.strictEqual(result.shouldCreate, true);
+    assert.strictEqual(result.shouldBackfill, true);
   });
 });
 
@@ -263,10 +269,10 @@ describe('T-11: upsert logic — admin gets isAdmin=true', () => {
   it('isAdmin=true when githubId matches ADMIN_GITHUB_ID', () => {
     const result = upsertDecision({
       githubId: '12345678',
-      existingUserId: null,
+      existingGithubId: null,
       adminGithubId: '12345678',
     });
-    assert.strictEqual(result.shouldCreate, true);
+    assert.strictEqual(result.shouldBackfill, true);
     assert.strictEqual(result.isAdmin, true);
   });
 });
@@ -279,10 +285,10 @@ describe('T-12: upsert logic — non-admin gets isAdmin=false', () => {
   it('isAdmin=false when githubId does not match ADMIN_GITHUB_ID', () => {
     const result = upsertDecision({
       githubId: '99999',
-      existingUserId: null,
+      existingGithubId: null,
       adminGithubId: '12345678',
     });
-    assert.strictEqual(result.shouldCreate, true);
+    assert.strictEqual(result.shouldBackfill, true);
     assert.strictEqual(result.isAdmin, false);
   });
 });
@@ -292,13 +298,13 @@ describe('T-12: upsert logic — non-admin gets isAdmin=false', () => {
 // (AC-ADMIN-3)
 // ---------------------------------------------------------------------------
 describe('T-13: upsert logic — existing user isAdmin unchanged', () => {
-  it('returns shouldCreate=false for existing user (no isAdmin update)', () => {
+  it('returns shouldBackfill=false for returning user (githubId already set, no isAdmin update)', () => {
     const result = upsertDecision({
       githubId: '12345678',
-      existingUserId: 'user-abc',
+      existingGithubId: '12345678',
       adminGithubId: '12345678',
     });
-    assert.strictEqual(result.shouldCreate, false);
+    assert.strictEqual(result.shouldBackfill, false);
     assert.strictEqual(result.isAdmin, null); // no change
   });
 });
@@ -322,8 +328,8 @@ describe('T-14: auth.ts — ADMIN_GITHUB_ID check uses String() or numeric ID', 
   it('upsertDecision uses String comparison for admin check', () => {
     // Verify coercion: numeric-like string equals string
     const result = upsertDecision({
-      githubId: 12345678,   // numeric (as GitHub profile returns it)
-      existingUserId: null,
+      githubId: 12345678,        // numeric (as GitHub profile returns it)
+      existingGithubId: null,
       adminGithubId: '12345678', // env var is always a string
     });
     assert.strictEqual(result.isAdmin, true, 'String coercion must handle numeric githubId');
@@ -338,7 +344,7 @@ describe('T-15: upsert logic — no ADMIN_GITHUB_ID → isAdmin=false', () => {
   it('isAdmin=false when adminGithubId is undefined', () => {
     const result = upsertDecision({
       githubId: '12345678',
-      existingUserId: null,
+      existingGithubId: null,
       adminGithubId: undefined,
     });
     assert.strictEqual(result.isAdmin, false);
@@ -347,9 +353,128 @@ describe('T-15: upsert logic — no ADMIN_GITHUB_ID → isAdmin=false', () => {
   it('isAdmin=false when adminGithubId is empty string', () => {
     const result = upsertDecision({
       githubId: '12345678',
-      existingUserId: null,
+      existingGithubId: null,
       adminGithubId: '',
     });
     assert.strictEqual(result.isAdmin, false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-GA-NEW-1: upsertDecision returns shouldBackfill=true when githubId is null
+// (adapter just created user — new sign-in)
+// ---------------------------------------------------------------------------
+describe('T-GA-NEW-1: upsertDecision — shouldBackfill=true for new user', () => {
+  it('shouldBackfill=true when existingGithubId is null', () => {
+    const result = upsertDecision({
+      githubId: '55555',
+      existingGithubId: null,
+      adminGithubId: undefined,
+    });
+    assert.strictEqual(result.shouldBackfill, true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-GA-NEW-2: upsertDecision returns shouldBackfill=false when githubId is set
+// (returning user — updateMany WHERE clause makes it a no-op)
+// ---------------------------------------------------------------------------
+describe('T-GA-NEW-2: upsertDecision — shouldBackfill=false for returning user', () => {
+  it('shouldBackfill=false when existingGithubId is already set', () => {
+    const result = upsertDecision({
+      githubId: '55555',
+      existingGithubId: '55555',
+      adminGithubId: undefined,
+    });
+    assert.strictEqual(result.shouldBackfill, false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-GA-NEW-3: prisma/schema.prisma — User model uses `image` field (not `avatarUrl`)
+// ---------------------------------------------------------------------------
+describe('T-GA-NEW-3: schema.prisma — User.image field exists (not avatarUrl)', () => {
+  it('schema.prisma User model contains "image" field', () => {
+    const content = readFile('prisma/schema.prisma');
+    // Extract the User model block
+    const userModelMatch = content.match(/model User \{[\s\S]*?\}/);
+    assert.ok(userModelMatch, 'Expected a User model in schema.prisma');
+    const userModel = userModelMatch[0];
+    assert.ok(
+      userModel.includes('image'),
+      'Expected User model to have an "image" field (NextAuth adapter standard)'
+    );
+  });
+
+  it('schema.prisma User model does NOT contain "avatarUrl"', () => {
+    const content = readFile('prisma/schema.prisma');
+    const userModelMatch = content.match(/model User \{[\s\S]*?\}/);
+    assert.ok(userModelMatch, 'Expected a User model in schema.prisma');
+    const userModel = userModelMatch[0];
+    assert.ok(
+      !userModel.includes('avatarUrl'),
+      'User model must not have "avatarUrl" — field was renamed to "image" to match NextAuth adapter'
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-GA-NEW-4: auth.ts — signIn callback uses updateMany (not create) for user backfill
+// ---------------------------------------------------------------------------
+describe('T-GA-NEW-4: auth.ts — uses updateMany for user backfill', () => {
+  it('auth.ts contains prisma.user.updateMany call', () => {
+    const AUTH_CANDIDATES = ['auth.ts', 'src/auth.ts'];
+    const filePath = AUTH_CANDIDATES.find(p => fileExists(p));
+    assert.ok(filePath, 'auth.ts not found');
+    const content = readFile(filePath);
+    assert.ok(
+      content.includes('updateMany'),
+      'Expected auth.ts signIn callback to use prisma.user.updateMany for backfill'
+    );
+  });
+
+  it('auth.ts does NOT contain prisma.user.create call in signIn callback', () => {
+    const AUTH_CANDIDATES = ['auth.ts', 'src/auth.ts'];
+    const filePath = AUTH_CANDIDATES.find(p => fileExists(p));
+    assert.ok(filePath, 'auth.ts not found');
+    const content = readFile(filePath);
+    assert.ok(
+      !content.includes('user.create('),
+      'auth.ts must not call prisma.user.create() — the adapter owns User creation'
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-GA-NEW-5: auth.ts — backfill uses `image` field (not `avatarUrl`)
+// ---------------------------------------------------------------------------
+describe('T-GA-NEW-5: auth.ts — backfill data uses `image` field', () => {
+  it('auth.ts updateMany data block contains "image" key', () => {
+    const AUTH_CANDIDATES = ['auth.ts', 'src/auth.ts'];
+    const filePath = AUTH_CANDIDATES.find(p => fileExists(p));
+    assert.ok(filePath, 'auth.ts not found');
+    const content = readFile(filePath);
+    // Look for `image` inside the updateMany data object
+    // Pattern: data: { githubId, image, isAdmin } or data: { ..., image: ...}
+    assert.ok(
+      /updateMany[\s\S]{0,300}data[\s\S]{0,100}image/.test(content),
+      'Expected auth.ts updateMany data to include "image" field (not avatarUrl)'
+    );
+  });
+
+  it('auth.ts updateMany data block does NOT use "avatarUrl" key', () => {
+    const AUTH_CANDIDATES = ['auth.ts', 'src/auth.ts'];
+    const filePath = AUTH_CANDIDATES.find(p => fileExists(p));
+    assert.ok(filePath, 'auth.ts not found');
+    const content = readFile(filePath);
+    // Find the updateMany call and check its data argument does not reference avatarUrl
+    const updateManyIdx = content.indexOf('updateMany');
+    assert.ok(updateManyIdx !== -1, 'Expected updateMany call in auth.ts');
+    // Look at the 400 chars after updateMany for the data block
+    const snippet = content.slice(updateManyIdx, updateManyIdx + 400);
+    assert.ok(
+      !snippet.includes('avatarUrl'),
+      'auth.ts updateMany data must not use "avatarUrl" — must use "image" to match schema'
+    );
   });
 });
