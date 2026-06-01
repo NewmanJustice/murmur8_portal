@@ -16,7 +16,7 @@ export const authConfig: NextAuthConfig = {
       },
     }),
   ],
-  session: { strategy: "database" },
+  session: { strategy: "jwt" },
   pages: { signIn: "/" },
   callbacks: {
     async signIn({ account }) {

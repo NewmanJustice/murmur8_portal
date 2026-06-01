@@ -50,17 +50,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
 
-    async session({ session, user }) {
-      if (session.user && user) {
+    async jwt({ token, user, trigger }) {
+      // On sign-in, user is populated — fetch extra fields and embed in token
+      if (user?.id || trigger === 'signIn') {
+        const userId = user?.id ?? token.sub!;
         const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
+          where: { id: userId },
           select: { id: true, isAdmin: true, image: true },
         });
         if (dbUser) {
-          (session.user as typeof session.user & { id: string; isAdmin: boolean; image: string | null }).id = dbUser.id;
-          (session.user as typeof session.user & { id: string; isAdmin: boolean; image: string | null }).isAdmin = dbUser.isAdmin;
-          (session.user as typeof session.user & { id: string; isAdmin: boolean; image: string | null }).image = dbUser.image;
+          token.id = dbUser.id;
+          token.isAdmin = dbUser.isAdmin;
+          token.picture = dbUser.image;
         }
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as typeof session.user & { id: string; isAdmin: boolean; image: string | null }).id = token.id as string;
+        (session.user as typeof session.user & { id: string; isAdmin: boolean; image: string | null }).isAdmin = token.isAdmin as boolean;
+        (session.user as typeof session.user & { id: string; isAdmin: boolean; image: string | null }).image = token.picture as string | null;
       }
       return session;
     },
