@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { authConfig } from "./auth.config";
 
 // Dev autologin — bypasses GitHub OAuth when DEV_AUTOLOGIN=true.
 // Uses the seed user so all dashboard pages render real data immediately.
@@ -21,44 +21,17 @@ export const DEV_SESSION =
     : null;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
-  trustHost: true,
-
-  providers: [
-    GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      authorization: {
-        params: {
-          scope: process.env.GITHUB_ORG_CHECK === 'true'
-            ? 'read:user user:email read:org'
-            : 'read:user user:email',
-        },
-      },
-    }),
-  ],
-
-  session: {
-    strategy: "database",
-  },
-
-  pages: {
-    signIn: "/",
-  },
 
   callbacks: {
-    async signIn({ profile, account }) {
-      // Org membership check (optional)
-      if (process.env.GITHUB_ORG_CHECK === 'true' && process.env.GITHUB_ORG) {
-        const res = await fetch('https://api.github.com/user/orgs', {
-          headers: { Authorization: `Bearer ${account?.access_token}` },
-        });
-        if (!res.ok) return false;
-        const orgs: { login: string }[] = await res.json();
-        if (!orgs.some((o) => o.login === process.env.GITHUB_ORG)) return false;
-      }
+    async signIn(params) {
+      // Org membership check (delegated to authConfig — edge-safe)
+      const allowed = await authConfig.callbacks!.signIn!(params);
+      if (!allowed) return false;
 
       // Backfill githubId, image, isAdmin after the adapter creates the user
+      const { profile } = params;
       if (profile?.id) {
         const githubId = String(profile.id);
         const image = (profile as { avatar_url?: string }).avatar_url ?? null;

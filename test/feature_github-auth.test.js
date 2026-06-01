@@ -214,19 +214,24 @@ describe('T-07 & T-08: middleware.ts — auth export pattern', () => {
 
   it('exports auth as middleware (NextAuth v5 pattern)', () => {
     const content = readFile('middleware.ts');
-    // Must contain the explicit re-export pattern, not a hand-rolled middleware function.
-    // Acceptable forms: `export { auth as middleware }` or `export { auth as middleware } from "./auth"`
+    // Must use NextAuth auth as middleware — either via re-export or split-config destructure.
+    // Acceptable forms:
+    //   `export { auth as middleware } from "./auth"`
+    //   `export const { auth: middleware } = NextAuth(authConfig)`
+    const reExportPattern = /export\s*\{[^}]*auth\s+as\s+middleware[^}]*\}/.test(content);
+    const splitConfigPattern = /export\s+const\s*\{[^}]*auth\s*:\s*middleware[^}]*\}/.test(content);
     assert.ok(
-      /export\s*\{[^}]*auth\s+as\s+middleware[^}]*\}/.test(content),
-      'Expected `export { auth as middleware }` (or `export { auth as middleware } from "./auth"`) in middleware.ts'
+      reExportPattern || splitConfigPattern,
+      'Expected `export { auth as middleware }` or `export const { auth: middleware } = NextAuth(...)` in middleware.ts'
     );
   });
 
-  it('imports from ./auth', () => {
+  it('imports from ./auth or ./auth.config (split-config pattern)', () => {
     const content = readFile('middleware.ts');
     assert.ok(
-      content.includes('./auth') || content.includes('"./auth"') || content.includes("'./auth'"),
-      'Expected middleware.ts to import from "./auth"'
+      content.includes('./auth') || content.includes('"./auth"') || content.includes("'./auth'") ||
+      content.includes('./auth.config') || content.includes('"./auth.config"') || content.includes("'./auth.config'"),
+      'Expected middleware.ts to import from "./auth" or "./auth.config"'
     );
   });
 });
